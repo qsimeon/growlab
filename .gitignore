@@ -9,3 +9,5 @@ runs/
 .autolab/
 .playwright-mcp/
 *.png
+*.pdf
+*.pptx
