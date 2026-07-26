@@ -1,0 +1,14 @@
+[project]
+name = "growlab"
+version = "0.1.0"
+description = "Given compute C, choose the parameter trajectory N(t)."
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26",
+    "datasets>=2.19",
+    "tokenizers>=0.19",
+]
+
+[tool.ruff]
+line-length = 100
