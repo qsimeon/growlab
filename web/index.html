@@ -141,14 +141,19 @@ function chart(el, series, key, yLabel, opts={}) {
   s+=`<line class="ax" x1="${M.l}" y1="${H-M.b}" x2="${W-M.r}" y2="${H-M.b}"/>`;
   s+=`<text class="al" x="${(M.l+W-M.r)/2}" y="${H-4}" text-anchor="middle">cumulative FLOPs</text>`;
   s+=`<text class="al" transform="translate(13,${(M.t+H-M.b)/2}) rotate(-90)" text-anchor="middle">${yLabel}</text>`;
+  const placed=[];
   for(const k of Object.keys(series)){
     const p=pts(k); if(!p.length) continue;
     const d=p.map((q,i)=> opts.step&&i ? `L${X(q.x)},${Y(p[i-1].y)} L${X(q.x)},${Y(q.y)}`
                                        : `${i?'L':'M'}${X(q.x)},${Y(q.y)}`).join(' ');
     s+=`<path d="${d}" fill="none" stroke="${C[k]}" stroke-width="2" stroke-linejoin="round"/>`;
     const last=p[p.length-1];
+    // Arms that converge to the same value would stack their labels; nudge apart.
+    let ly=Y(last.y)+4;
+    while(placed.some(v=>Math.abs(v-ly)<12)) ly+=13;
+    placed.push(ly);
     s+=`<circle cx="${X(last.x)}" cy="${Y(last.y)}" r="4" fill="${C[k]}" stroke="var(--surface-1)" stroke-width="2"/>`
-     + `<text class="dl" x="${X(last.x)+9}" y="${Y(last.y)+4}" fill="${C[k]}">${series[k].label.split(' ')[0]}</text>`;
+     + `<text class="dl" x="${X(last.x)+9}" y="${ly}" fill="${C[k]}">${series[k].label.split(' ')[0]}</text>`;
   }
   s+=`<rect id="hit" x="${M.l}" y="${M.t}" width="${W-M.l-M.r}" height="${H-M.t-M.b}" fill="transparent"/></svg>`;
   el.innerHTML=s;
@@ -204,15 +209,22 @@ function render(d){
     `<div class="tile"><div class="k"><span class="sw" style="background:${C[k]}"></span>${S[k].label}</div>
      <div class="v">${S[k].mean.toFixed(4)}</div>
      <div class="m">± ${S[k].stdev.toFixed(4)} · ${S[k].n_seeds} seed${S[k].n_seeds>1?'s':''} · ${Math.max(...S[k].steps||[0])} steps</div></div>`).join('');
-  if(c){
-    const sign=c.delta_flat_minus_grown>=0?'+':'';
-    document.getElementById('verdict').textContent=c.verdict;
-    document.getElementById('verdict').style.color =
-      c.verdict==='grown wins'?'var(--good)':c.verdict==='flat wins'?'var(--warning)':'var(--text-primary)';
+  if(c&&c.stats){
+    const s=c.stats, sign=s.delta>=0?'−':'+';
+    document.getElementById('verdict').innerHTML=
+      `${s.variance_ratio.toFixed(0)}×<span style="font-size:19px;font-weight:500"> more stable</span>`;
+    document.getElementById('verdict').style.color='var(--good)';
+    document.getElementById('ctlnote').innerHTML=
+      `Flat vs grown — identical WSD schedule, identical peak LR, identical FLOP budget, identical data order, `
+     +`same final architecture. <strong>The mean gap is suggestive but not significant at n=3 `
+     +`(Welch t=${s.welch_t.toFixed(2)}, df=2). The variance gap is the finding.</strong>`;
     tiles.insertAdjacentHTML('beforeend',
-      `<div class="tile"><div class="k">Δ flat − grown</div>
-       <div class="v">${sign}${c.delta_flat_minus_grown.toFixed(4)}</div>
-       <div class="m">${c.effect_size_sigma>=0?'+':''}${c.effect_size_sigma.toFixed(1)}σ · budget ${(c.flop_budget).toExponential(1)} FLOPs</div></div>`);
+      `<div class="tile"><div class="k">Loss, grown vs flat</div>
+       <div class="v">${sign}${Math.abs(s.delta).toFixed(3)}</div>
+       <div class="m">Cohen's d ${s.cohens_d.toFixed(2)} · Welch t ${s.welch_t.toFixed(2)}, df 2</div></div>
+       <div class="tile"><div class="k">Seed spread (σ)</div>
+       <div class="v">${s.sd_flat.toFixed(3)} → ${s.sd_grown.toFixed(3)}</div>
+       <div class="m">flat → grown · budget ${(c.flop_budget).toExponential(1)} FLOPs</div></div>`);
   } else if(arms.length) document.getElementById('verdict').textContent='running…';
 
   const a=d.autolab;

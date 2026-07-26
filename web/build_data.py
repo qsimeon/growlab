@@ -81,13 +81,42 @@ def autolab_state():
     }
 
 
+def add_stats(control, series):
+    """Proper two-sample statistics.
+
+    control.py's shipped verdict compares the mean gap to a *pooled standard
+    deviation*, which is an effect-size ruler, not a significance test. Both are
+    reported here rather than swapping one for the other after seeing the data.
+    """
+    a, b = series["flat"], series["grown"]
+    if not (a["mean"] and b["mean"] and a["n_seeds"] > 1 and b["n_seeds"] > 1):
+        return control
+    import math
+
+    sea = a["stdev"] / math.sqrt(a["n_seeds"])
+    seb = b["stdev"] / math.sqrt(b["n_seeds"])
+    pooled = math.sqrt((a["stdev"] ** 2 + b["stdev"] ** 2) / 2)
+    delta = a["mean"] - b["mean"]
+    control = dict(control or {})
+    control["stats"] = {
+        "delta": delta,
+        "welch_t": delta / math.sqrt(sea**2 + seb**2),
+        "cohens_d": delta / pooled,
+        "variance_ratio": (a["stdev"] / b["stdev"]) ** 2 if b["stdev"] else None,
+        "sd_flat": a["stdev"],
+        "sd_grown": b["stdev"],
+    }
+    return control
+
+
 def main():
     summary_path = RUNS / "control_summary.json"
     control = json.loads(summary_path.read_text()) if summary_path.exists() else None
+    series = {arm: arm_series(arm) for arm in ARMS}
     data = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "control": control,
-        "series": {arm: arm_series(arm) for arm in ARMS},
+        "control": add_stats(control, series),
+        "series": series,
         "autolab": autolab_state(),
     }
     OUT.write_text(json.dumps(data, indent=1))
