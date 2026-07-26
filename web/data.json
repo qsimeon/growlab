@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-26T22:42:08+00:00",
+ "generated_at": "2026-07-26T23:47:15+00:00",
  "control": {
   "flop_budget": 400000000000000.0,
   "seeds": 3,
@@ -3832,8 +3832,59 @@
  "autolab": {
   "project": "qsimeon/growlab",
   "url": "https://app.autolab.ai/projects/qsimeon/growlab",
-  "log": "qsimeon/growlab                                 \n                                                                                \n     id         status     commit   metric   title          created             \n \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 \n     5a203d2c   planning   \u2014                 Baseline run   2026-07-26T22:35:\u2026",
-  "status_raw": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 qsimeon/growlab \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\n\u2502                                                                              \u2502\n\u2502  growlab                                                                     \u2502\n\u2502                                                                              \u2502\n\u2502       status  Running  \u2014  Agent: coding \u2014 Given compute C, choose the        \u2502\n\u2502               parameter trajectory N(t). Scali                               \u2502\n\u2502    objective  Minimize mean validation loss at a FIXED FLOP budget (4e14)    \u2502\n\u2502               by choosing the parameter growth trajectory N(t) -- the        \u2502\n\u2502               schedule of when and how the model grows during training.      \u2502\n\u2502               Edit SCHEDULE and START in grow/experiment.py. Lower           \u2502\n\u2502               OBJECTIVE is better.                                           \u2502\n\u2502  constraints  1) The budget is FLOPs, never wall-clock and never step count  \u2502\n\u2502               -- do not change FLOP_BUDGET. 2) Every trajectory must end at  \u2502\n\u2502               exactly 6L 8H 256D; experiment.py enforces this. 3) The        \u2502\n\u2502               objective must be the mean over >=3 seeds -- do not reduce     \u2502\n\u2502               SEEDS, single-seed results are noise at this scale. 4) Do not  \u2502\n\u2502               modify the evaluation, the data pipeline, or flops_per_token   \u2502\n\u2502               in grow/model.py. 5) The interesting knob is the SHAPE of      \u2502\n\u2502               N(t): when to grow, how much, width vs depth. Optimizing       \u2502\n\u2502               learning rate instead is off-objective.                        \u2502\n\u2502          run  uv run python grow/experiment.py                               \u2502\n\u2502         prep  uv sync && uv run python grow/data.py                          \u2502\n\u2502  description  Given compute C, choose the parameter trajectory N(t).         \u2502\n\u2502               Scaling laws fix N constant and never argued for it.           \u2502\n\u2502       source  \u2014                                                              \u2502\n\u2502          llm  anthropic/claude-opus-4-8  \u00b7  key AutoLab Key (platform)       \u2502\n\u2502        ideas  on                                                             \u2502\n\u2502        nodes  1/1 online \u00b7 dhcp-10-31-128-107.dyn.MIT.EDU                    \u2502\n\u2502  experiments  0 queued  \u00b7  1 active  \u00b7  0 done                               \u2502\n\u2502         link  https://app.autolab.ai/projects/qsimeon/growlab                \u2502\n\u2502                                                                              \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 https://app.autolab.ai \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 you're in \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\n\u2502                                                                              \u2502\n\u2502  \u25cb not in an experiment  \u2014 edit code and `autolab submit`                    \u2502\n\u2502                                                                              \u2502\n\u2502  changes  5 file(s) \u2014 `autolab diff` to view                                 \u2502\n\u2502                                                                              \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f",
+  "experiments": [
+   {
+    "id": "45daf18a",
+    "status": "running",
+    "metric": null,
+    "title": "Growth completes ~step 800 (even spacing bracket)",
+    "created": "2026-07-26T23:24:47"
+   },
+   {
+    "id": "ff590a79",
+    "status": "discarded",
+    "metric": 4.079,
+    "title": "Extend warmup: start 2L/128D before winning cadenc",
+    "created": "2026-07-26T23:24:47"
+   },
+   {
+    "id": "289f970c",
+    "status": "merged",
+    "metric": 4.076,
+    "title": "Growth timing shifted 50 steps earlier (completes",
+    "created": "2026-07-26T23:14:39"
+   },
+   {
+    "id": "a935edf5",
+    "status": "discarded",
+    "metric": 4.22,
+    "title": "Aggressive front-loaded growth (start 4L/192D, don",
+    "created": "2026-07-26T23:04:30"
+   },
+   {
+    "id": "2545c1e4",
+    "status": "discarded",
+    "metric": 4.09,
+    "title": "Width-first growth ordering",
+    "created": "2026-07-26T22:53:45"
+   },
+   {
+    "id": "22807ca2",
+    "status": "discarded",
+    "metric": 4.142,
+    "title": "Delayed growth schedule (grow later, more small-mo",
+    "created": "2026-07-26T22:53:45"
+   },
+   {
+    "id": "5a203d2c",
+    "status": "merged",
+    "metric": 4.111,
+    "title": "Baseline run (default growth schedule)",
+    "created": "2026-07-26T22:35:27"
+   }
+  ],
+  "best": 4.076,
+  "n_done": 6,
   "live": false
  }
 }

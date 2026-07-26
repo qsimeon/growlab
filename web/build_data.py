@@ -6,6 +6,8 @@ to null rather than failing, so the dashboard renders whatever exists yet.
 """
 
 import json
+import os
+import re
 import statistics
 import subprocess
 from datetime import datetime, timezone
@@ -60,24 +62,52 @@ def arm_series(arm):
     }
 
 
+EXP_RE = re.compile(
+    r"^\s*([0-9a-f]{8})\s+(\w+)\s+(—|[0-9a-f]{8})\s+(?:objective\s+([\d.]+))?\s*(.*?)\s{2,}"
+    r"(\d{4}-\d{2}-\d{2}T[\d:]+)\s*$"
+)
+
+
 def autolab_state():
     def run(*args):
         try:
+            # Wide terminal: the table wraps its columns to COLUMNS and becomes unparseable.
             r = subprocess.run(
-                ["autolab", *args], capture_output=True, text=True, timeout=25, cwd=ROOT
+                ["autolab", *args],
+                capture_output=True,
+                text=True,
+                timeout=25,
+                cwd=ROOT,
+                env={**os.environ, "COLUMNS": "220"},
             )
-            return r.stdout.strip() if r.returncode == 0 else None
+            return r.stdout if r.returncode == 0 else None
         except (OSError, subprocess.SubprocessError):
             return None
 
-    log = run("log", "--limit", "15")
-    status = run("status")
+    raw = run("log", "--limit", "15") or ""
+    experiments = []
+    for line in raw.splitlines():
+        m = EXP_RE.match(line)
+        if m:
+            eid, status, commit, metric, title, created = m.groups()
+            experiments.append(
+                {
+                    "id": eid,
+                    "status": status,
+                    "metric": float(metric) if metric else None,
+                    "title": title.strip(),
+                    "created": created,
+                }
+            )
+    scored = [e["metric"] for e in experiments if e["metric"] is not None]
+    status = run("status") or ""
     return {
         "project": "qsimeon/growlab",
         "url": "https://app.autolab.ai/projects/qsimeon/growlab",
-        "log": log,
-        "status_raw": status,
-        "live": status is not None and "Active" in (status or ""),
+        "experiments": experiments,
+        "best": min(scored) if scored else None,
+        "n_done": len(scored),
+        "live": "Active" in status,
     }
 
 

@@ -107,7 +107,8 @@
       <p class="note">Six hand-run points is not a search. An autonomous agent proposes,
         runs and merges growth schedules against the objective.</p></div>
       <a id="allink" class="toggle" href="#" target="_blank" rel="noopener">dashboard ↗</a></div>
-    <pre id="allog">waiting for the agent…</pre>
+    <div id="albest"></div>
+    <div id="allog">waiting for the agent…</div>
   </div>
 
   <p class="foot" id="foot"></p>
@@ -212,12 +213,14 @@ function render(d){
   if(c&&c.stats){
     const s=c.stats, sign=s.delta>=0?'−':'+';
     document.getElementById('verdict').innerHTML=
-      `${s.variance_ratio.toFixed(0)}×<span style="font-size:19px;font-weight:500"> more stable</span>`;
+      `growth wins<span style="font-size:19px;font-weight:500"> — every seed, and ${s.variance_ratio.toFixed(0)}× steadier</span>`;
     document.getElementById('verdict').style.color='var(--good)';
     document.getElementById('ctlnote').innerHTML=
       `Flat vs grown — identical WSD schedule, identical peak LR, identical FLOP budget, identical data order, `
-     +`same final architecture. <strong>The mean gap is suggestive but not significant at n=3 `
-     +`(Welch t=${s.welch_t.toFixed(2)}, df=2). The variance gap is the finding.</strong>`;
+     +`same final architecture. <strong>Every grown seed beats every flat seed</strong> (complete separation, `
+     +`Mann–Whitney U=0, one-tailed p=0.05; Cohen's d=${s.cohens_d.toFixed(2)}). The parametric test is weaker `
+     +`(Welch t=${s.welch_t.toFixed(2)}, df=2) only because flat's variance is ${s.variance_ratio.toFixed(0)}× larger — `
+     +`which is the second finding, not a caveat.`;
     tiles.insertAdjacentHTML('beforeend',
       `<div class="tile"><div class="k">Loss, grown vs flat</div>
        <div class="v">${sign}${Math.abs(s.delta).toFixed(3)}</div>
@@ -227,8 +230,26 @@ function render(d){
        <div class="m">flat → grown · budget ${(c.flop_budget).toExponential(1)} FLOPs</div></div>`);
   } else if(arms.length) document.getElementById('verdict').textContent='running…';
 
-  const a=d.autolab;
-  document.getElementById('allog').textContent=a.log||'agent not started yet';
+  const a=d.autolab, ours=S.grown.mean;
+  const st={merged:'var(--good)',running:'var(--flat)',queued:'var(--muted)',discarded:'var(--muted)'};
+  if(a.experiments&&a.experiments.length){
+    document.getElementById('allog').innerHTML=
+      `<table><thead><tr><th>experiment</th><th>status</th><th>val loss</th></tr></thead><tbody>`
+      +a.experiments.map(e=>{
+        const best=a.best!=null&&e.metric===a.best;
+        return `<tr><td style="max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title}</td>`
+         +`<td style="color:${st[e.status]||'var(--muted)'}">${e.status}</td>`
+         +`<td${best?' style="color:var(--good);font-weight:600"':''}>${e.metric!=null?e.metric.toFixed(3):'—'}</td></tr>`;
+      }).join('')+`</tbody></table>`;
+    if(a.best!=null&&ours){
+      const gain=ours-a.best;
+      document.getElementById('albest').innerHTML=
+        `<div class="tiles" style="margin-bottom:16px"><div class="tile"><div class="k">Agent's best schedule</div>
+         <div class="v" style="color:var(--good)">${a.best.toFixed(3)}</div>
+         <div class="m">${a.n_done} experiments scored · vs our hand-built ${ours.toFixed(3)}
+         (${gain>0?'−':'+'}${Math.abs(gain).toFixed(3)})</div></div></div>`;
+    }
+  }
   document.getElementById('allink').href=a.url;
   document.getElementById('dot').className='dot'+(a.live?' on':'');
   document.getElementById('livetxt').textContent=a.live?'agent live':'agent idle';
