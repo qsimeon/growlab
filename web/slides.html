@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>growlab — slides</title>
+<style>
+  :root{
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --flat:#3987e5; --grown:#d95926; --good:#0ca30c; --warn:#fab219;
+    --font:system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--page);color:var(--ink);font-family:var(--font);overflow:hidden}
+  .deck{height:100vh;width:100vw;position:relative}
+  section{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+          padding:5vh 7vw;opacity:0;transition:opacity .28s ease}
+  section.on{display:flex;opacity:1}
+  h1{font-size:clamp(30px,4.6vw,62px);font-weight:600;letter-spacing:-.025em;line-height:1.08}
+  h2{font-size:clamp(20px,2.5vw,34px);font-weight:600;letter-spacing:-.015em;margin-bottom:18px}
+  .kicker{font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);
+          margin-bottom:20px;font-weight:600}
+  p{font-size:clamp(15px,1.42vw,21px);color:var(--ink2);line-height:1.6;max-width:56ch}
+  p.big{font-size:clamp(18px,1.75vw,27px);color:var(--ink);max-width:44ch}
+  .dim{color:var(--muted)}
+  .em{color:var(--ink);font-weight:600}
+  .good{color:var(--good)} .bad{color:var(--warn)} .fl{color:var(--flat)} .gr{color:var(--grown)}
+  pre{font-family:var(--mono);font-size:clamp(10px,1.02vw,15px);line-height:1.5;color:var(--ink2);
+      background:#111110;border:1px solid var(--border);border-radius:9px;padding:16px 18px;overflow:auto}
+  .row{display:flex;gap:34px;align-items:center;flex-wrap:wrap}
+  .col{flex:1;min-width:270px}
+  table{border-collapse:collapse;font-size:clamp(12px,1.15vw,17px);font-variant-numeric:tabular-nums}
+  th,td{padding:8px 15px;border-bottom:1px solid var(--border);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:500}
+  .nav{position:fixed;bottom:16px;right:22px;font-size:12px;color:var(--muted);
+       font-variant-numeric:tabular-nums;z-index:5}
+  .bar{position:fixed;top:0;left:0;height:2px;background:var(--grown);transition:width .28s;z-index:5}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+       border:1px solid var(--border);border-radius:999px;padding:4px 11px;color:var(--ink2);margin-right:7px}
+  a{color:var(--flat)}
+  .hero{font-size:clamp(40px,7vw,96px);font-weight:600;letter-spacing:-.035em;line-height:1}
+  ul{list-style:none} li{font-size:clamp(14px,1.35vw,20px);color:var(--ink2);line-height:1.85;
+     padding-left:22px;position:relative}
+  li::before{content:'▸';position:absolute;left:0;color:var(--muted)}
+  /* animated growth staircase */
+  .grow-step{opacity:0;animation:pop .5s ease forwards}
+  @keyframes pop{to{opacity:1}}
+  section.on .grow-step:nth-of-type(1){animation-delay:.25s}
+  section.on .grow-step:nth-of-type(2){animation-delay:.55s}
+  section.on .grow-step:nth-of-type(3){animation-delay:.85s}
+  section.on .grow-step:nth-of-type(4){animation-delay:1.15s}
+  section.on .grow-step:nth-of-type(5){animation-delay:1.45s}
+  .draw{stroke-dasharray:1400;stroke-dashoffset:1400}
+  section.on .draw{animation:draw 1.7s ease forwards}
+  section.on .draw.d2{animation-delay:.35s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .pulse{animation:pulse 2.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+  .flow{stroke-dasharray:6 7;animation:flow 1.1s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-26}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="deck" id="deck">
+
+<!-- 1 -->
+<section>
+  <div class="kicker">Sundai Hack #133 · Autolab × Maritime</div>
+  <h1>A model that <span class="gr">grows</span><br>while it learns.</h1>
+  <p style="margin-top:26px" class="big">Scaling laws tell you how <em>big</em> to build a model.
+    Nobody asked what <em>shape</em> it should be over time.</p>
+  <p style="margin-top:22px" class="dim">github.com/qsimeon/growlab</p>
+</section>
+
+<!-- 2 -->
+<section>
+  <div class="kicker">The unexamined assumption</div>
+  <h2>Chinchilla: given compute <em>C</em>, choose <em>N</em> and <em>D</em>.</h2>
+  <p>It answers that well. But it holds the parameter count <span class="em">N constant for the
+    entire run</span> — and never argued for it. That's not a result. It's just how models are built.</p>
+  <p class="big" style="margin-top:30px">Given compute <em>C</em>, choose the
+    <span class="gr">trajectory N(t)</span>.<br><span class="dim" style="font-size:.8em">The answer is a
+    shape, not a number.</span></p>
+</section>
+
+<!-- 3 -->
+<section>
+  <div class="kicker">Why it could work</div>
+  <h2>Training compute is the area under the parameter curve.</h2>
+  <div class="row" style="margin-top:14px">
+    <div class="col">
+      <svg viewBox="0 0 340 190" style="width:100%">
+        <text x="8" y="14" fill="#898781" font-size="11">FLAT — pay full price from step 0</text>
+        <line x1="30" y1="160" x2="325" y2="160" stroke="#383835"/>
+        <line x1="30" y1="20" x2="30" y2="160" stroke="#383835"/>
+        <rect x="31" y="45" width="290" height="115" fill="#3987e5" opacity=".22"/>
+        <path class="draw" d="M31,45 L321,45" stroke="#3987e5" stroke-width="2.5" fill="none"/>
+        <text x="150" y="112" fill="#3987e5" font-size="13" font-weight="600">C</text>
+      </svg>
+    </div>
+    <div class="col">
+      <svg viewBox="0 0 340 190" style="width:100%">
+        <text x="8" y="14" fill="#898781" font-size="11">GROWN — earn capacity as you use it</text>
+        <line x1="30" y1="160" x2="325" y2="160" stroke="#383835"/>
+        <line x1="30" y1="20" x2="30" y2="160" stroke="#383835"/>
+        <g fill="#d95926" opacity=".22">
+          <rect class="grow-step" x="31"  y="132" width="58" height="28"/>
+          <rect class="grow-step" x="89"  y="110" width="58" height="50"/>
+          <rect class="grow-step" x="147" y="80"  width="58" height="80"/>
+          <rect class="grow-step" x="205" y="62"  width="58" height="98"/>
+          <rect class="grow-step" x="263" y="45"  width="58" height="115"/>
+        </g>
+        <path class="draw d2" d="M31,132 L89,132 L89,110 L147,110 L147,80 L205,80 L205,62 L263,62 L263,45 L321,45"
+              stroke="#d95926" stroke-width="2.5" fill="none"/>
+        <text x="150" y="140" fill="#d95926" font-size="13" font-weight="600">smaller C</text>
+      </svg>
+    </div>
+  </div>
+  <p style="margin-top:16px">Early training learns cheap statistics — token frequencies, basic syntax —
+    that need almost no capacity. <span class="em">Paying for full width from step 0 is buying capacity
+    before you can use it.</span></p>
+</section>
+
+<!-- 4 -->
+<section>
+  <div class="kicker">Provenance · why the obvious approach dies</div>
+  <h2>Attempt 1: expand a <em>finished</em> model, preserving it exactly.</h2>
+  <div class="row">
+    <div class="col"><pre>  "preserve f(x) exactly"
+            │
+            ▼
+  new weights must be ≈ 0
+            │
+            ▼
+  new heads: Q,K ≈ 1e-9
+            │
+            ▼
+  scores = QK/√d ≈ 1e-18
+            │
+            ▼
+  softmax(≈0) = <span class="bad">UNIFORM</span>
+            │
+            ▼
+  gradient ≈ 5e-13
+            │
+            ▼
+  <span class="bad">dead heads. forever.</span></pre></div>
+    <div class="col">
+      <p>Function preservation works perfectly — max logit diff 0.005. And that is exactly what kills it.</p>
+      <p style="margin-top:16px">No noise scale escapes:<br>
+        <span class="dim">1e-8 → preserved, dead.<br>1e-4 → alive, preservation destroyed.</span></p>
+      <p style="margin-top:16px" class="em">The trap exists <em>only</em> because you're expanding
+        something finished and precious.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section>
+  <div class="kicker">The reframe</div>
+  <h2>Grow a model that is still <em>mid-training</em>.</h2>
+  <p>Nothing is finished. Nothing is precious. So new parameters get born at
+    <span class="em">real magnitude</span>, gradients flow, and the capacity is actually used.</p>
+  <pre style="margin-top:22px">  <span class="gr">grow_width</span>   preservation <span class="bad">ABANDONED</span> — new dims ~ N(0, 0.02)
+               loss blips 0.02–0.1 nats, absorbed in ~20 steps
+
+  <span class="gr">grow_depth</span>   preservation <span class="good">KEPT</span> — new block's output proj = 0
+               → exact identity via the residual
+
+  ┌────────────────────────────────────────────────────┐
+  │  Zero an <span class="good">OUTPUT</span> projection → safe.                   │
+  │    identity via residual, gradient still arrives.  │
+  │  Zero an <span class="bad">INPUT</span> projection  → fatal.                  │
+  │    Q,K = 0 → uniform softmax → dead forever.       │
+  └────────────────────────────────────────────────────┘</pre>
+  <p style="margin-top:18px" class="em">The inherited code zeroed new width dims — reproducing the
+    softmax barrier inside the direction meant to escape it. That was a bug. We fixed it.</p>
+</section>
+
+<!-- 6 -->
+<section>
+  <div class="kicker">Before trusting any number</div>
+  <h2>We audited the result we started from.</h2>
+  <p>Inherited headline: <span class="em">"same loss at 54% of the FLOPs."</span> Decomposed:</p>
+  <pre style="margin-top:14px">  54.1% FLOPs  =  60.0% <span class="dim">(fewer steps)</span>  ×  90.3% <span class="dim">(smaller on average)</span>
+
+                  <span class="bad">growth was doing 9.7% of the work.</span></pre>
+  <ul style="margin-top:22px">
+    <li><span class="em">n = 1.</span> Every run used seed=42. The "match" was 6.193 vs 6.191 — no error bars.</li>
+    <li><span class="em">Four things changed at once</span> — growth + WSD + 3.3× LR + warmup.</li>
+    <li><span class="em">Step counts were hand-tuned</span> per preset until one landed on the target.</li>
+    <li><span class="em">The vocabulary ate the experiment</span> — see next slide.</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section>
+  <div class="kicker">Fix that made it measurable</div>
+  <h2>A 50k vocab made growth <em>unable</em> to matter.</h2>
+  <p>The tied embed/lm_head matmul scales <span class="em">linearly</span> in <em>d</em>.
+    The transformer body — the only thing growth shrinks — scales as <em>d²</em>.
+    Body wins only when <span class="em">d &gt; V/(12L)</span>.</p>
+  <pre style="margin-top:18px">  V = 50,304, L = 6  →  need d &gt; 700.   Experiments ran at d = 128→256.
+
+    d=128  ┌────────────────────────────────┐
+           │<span class="bad">████████████████████████████</span>░░░░│  embed <span class="bad">91%</span> · body 9%
+           └────────────────────────────────┘
+                                     ▲ growth can only touch this sliver
+
+  V = 4,096, L = 6   →  need d &gt; 57.  <span class="good">✓</span>
+
+    d=256  ┌────────────────────────────────┐
+           │██████<span class="good">░░░░░░░░░░░░░░░░░░░░░░░░░░</span>│  embed 20% · body <span class="good">80%</span>
+           └────────────────────────────────┘</pre>
+  <p style="margin-top:16px">So we trained a 4,096-token BPE over WikiText-103. Now N(t) genuinely
+    drives the compute bill — and the experiment can detect an effect at all.</p>
+</section>
+
+<!-- 8 -->
+<section>
+  <div class="kicker">The control the prior work never ran</div>
+  <h2>One thing varied. Everything else pinned.</h2>
+  <pre>       ARM A <span class="fl">flat</span>                      ARM B <span class="gr">grown</span>
+       6L 8H 256D from step 0          3L 4H 128D ──▶ 6L 8H 256D
+            │                                │
+            ├──── identical WSD schedule ────┤
+            ├──── identical peak LR ─────────┤
+            ├──── identical data order ──────┤
+            ├──── identical FLOP budget ─────┤
+            ├──── same final architecture ───┤
+            └──── 3 seeds each ──────────────┘</pre>
+  <p style="margin-top:20px">At matched FLOPs, being small early <span class="em">buys 2908 steps
+    instead of 2433</span> — +19%. That is the mechanism under test.</p>
+</section>
+
+<!-- 9 -->
+<section>
+  <div class="kicker">Result</div>
+  <h1 class="hero good">growth wins.</h1>
+  <p class="big" style="margin-top:18px">Every grown seed beat every flat seed.</p>
+  <div class="row" style="margin-top:26px">
+    <div class="col" style="flex:0 0 auto">
+      <table>
+        <tr><th></th><th>val loss</th><th>seeds</th><th>steps</th></tr>
+        <tr><td><span class="fl">flat</span></td><td>5.024 ± <span class="bad">0.532</span></td>
+            <td class="dim">4.464 · 5.088 · 5.521</td><td>2433</td></tr>
+        <tr><td><span class="gr">grown</span></td><td><span class="good">4.111</span> ± <span class="good">0.053</span></td>
+            <td class="dim">4.080 · 4.172 · 4.082</td><td>2908</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <pre>  <span class="fl">flat</span>:   4.46 ─────── 5.09 ─────── 5.52
+  <span class="gr">grown</span>:  ▲
+         4.08 4.08 4.17
+              └─ <span class="good">no overlap</span> ─┘</pre>
+    </div>
+  </div>
+  <p style="margin-top:22px"><span class="tag">−0.913 nats</span><span class="tag">Cohen's d 2.42</span>
+    <span class="tag">Mann–Whitney U=0</span><span class="tag good">102× steadier</span></p>
+</section>
+
+<!-- 10 -->
+<section>
+  <div class="kicker">The second finding</div>
+  <h2>Growth buys <em>learning-rate robustness</em>, not just compute.</h2>
+  <p>Flat's seed spread is <span class="em">102× larger</span> (σ 0.532 → 0.053). At this learning rate,
+    starting at full size is <span class="bad">unstable</span> and starting small is not.
+    The model is tiny exactly when a high LR would otherwise blow it up.</p>
+  <p class="big" style="margin-top:26px">Growth is acting as a <span class="gr">curriculum</span>.</p>
+  <p style="margin-top:26px" class="dim"><span class="em">The confound we name ourselves:</span>
+    LR=1e-3 was inherited from the grown preset, so the flat arm runs at an LR it was never tuned for.
+    An LR sweep on flat is the honest next experiment. We didn't run it.</p>
+</section>
+
+<!-- 11 -->
+<section>
+  <div class="kicker">Six hand-run points is not a search</div>
+  <h2>So we gave the search to an agent.</h2>
+  <p>When to grow × how much × width vs depth × how to init × optimizer state × LR around each event.
+    The space is far too big to hand-tune. <span class="em">Autolab</span>'s agent proposes, runs, scores
+    and merges growth schedules autonomously.</p>
+  <table style="margin-top:22px">
+    <tr><th>experiment</th><th>loss</th><th></th></tr>
+    <tr><td>Baseline — our hand-built schedule</td><td>4.111</td><td class="dim">reproduced exactly ✓</td></tr>
+    <tr><td>Delayed growth</td><td>4.142</td><td class="dim">discarded</td></tr>
+    <tr><td>Aggressive front-load</td><td>4.220</td><td class="dim">discarded</td></tr>
+    <tr><td>Width-first ordering</td><td>4.090</td><td class="dim">discarded</td></tr>
+    <tr><td>Finer-grained, 7 events</td><td>4.112</td><td class="dim">discarded</td></tr>
+    <tr><td>Extended warmup</td><td>4.079</td><td class="dim">tie</td></tr>
+    <tr><td class="em">Growth completes ~step 800</td><td class="good">4.074</td><td class="good">MERGED — best</td></tr>
+  </table>
+</section>
+
+<!-- 12 -->
+<section>
+  <div class="kicker">What the agent learned</div>
+  <h2>Growth <em>timing</em> matters more than growth <em>granularity</em>.</h2>
+  <ul>
+    <li>Both timing extremes lose — front-loading (4.220) and delaying (4.142).</li>
+    <li><span class="em">Width-first ordering is worse</span> (4.090) than interleaving width with depth.</li>
+    <li>More, finer growth events do <span class="em">not</span> help (4.112) — it's a flat basin, seed-noise dominated.</li>
+    <li>The optimum is a <span class="em">plateau around completing growth at step 800–950</span>, not a knife edge.</li>
+  </ul>
+  <p style="margin-top:24px">It then stopped and told us it had converged — <span class="em">"remaining
+    variation is seed noise"</span> — and asked whether to raise the seed count. That's the agent
+    knowing the difference between signal and noise.</p>
+</section>
+
+<!-- 13 -->
+<section>
+  <div class="kicker">The stack · two agents, two jobs</div>
+  <h2>Autolab does the science. Maritime opens the door.</h2>
+  <pre>  <span class="gr">AUTOLAB — the scientist</span>                    app.autolab.ai/projects/qsimeon/growlab
+  ┌──────────────────────┐   job    ┌──────────────────────────┐
+  │ control node (cloud) │ ───────▶ │ execution node = <span class="em">MY LAPTOP</span> │
+  │ claude-opus-4-8      │          │ uv run grow/experiment.py│
+  │ writes a new SCHEDULE│ ◀─────── │ 3 seeds → OBJECTIVE 4.074│
+  └──────────────────────┘  result  └──────────────────────────┘
+        <span class="dim">Autolab only thinks. The training runs on my machine.</span>
+                                │
+                   runs/*.jsonl │ web/build_data.py → data.json
+                                ▼
+  <span class="fl">MARITIME — the front door</span>                  api.maritime.sh/a/961c500c…
+  ┌────────────────────────────────────────────┐
+  │ micro-VM ← Dockerfile ← github.com/qsimeon/growlab │
+  │ serves web/index.html + data.json          │
+  │ <span class="dim">no training · no GPU · no LLM · a file server</span> │
+  └────────────────────────────────────────────┘</pre>
+  <p style="margin-top:18px" class="em">They never talk to each other. The only coupling is data.json.
+    Autolab produces the research; Maritime publishes it.</p>
+</section>
+
+<!-- 14 -->
+<section>
+  <div class="kicker">Honest limits</div>
+  <h2>What we did <em>not</em> show.</h2>
+  <ul>
+    <li><span class="em">Scale.</span> 5.9M params, 4k vocab, ~2900 steps. Nothing here survives a serious scale test yet.</li>
+    <li><span class="em">The LR confound.</span> Flat ran at an LR tuned for grown. A flat-arm LR sweep is the next experiment.</li>
+    <li><span class="em">n = 3.</span> Better than the n=1 we inherited, but complete separation at 3v3 is p=0.05 — the floor, not a comfortable margin.</li>
+    <li><span class="em">Open-loop schedules.</span> Growth fires on fixed steps. It should fire when the loss says capacity is saturated.</li>
+  </ul>
+  <p style="margin-top:24px" class="dim">The negative result would also have been publishable. We built
+    the demo so it works either way — watching an agent search trajectory space is the point.</p>
+</section>
+
+<!-- 15 -->
+<section>
+  <div class="kicker">Sundai Hack #133</div>
+  <h1>Given compute <em>C</em>,<br>the optimal trajectory<br><span class="gr">is not flat.</span></h1>
+  <p style="margin-top:30px">
+    <span class="tag">Dashboard · api.maritime.sh/a/961c500c…</span><br style="line-height:2.4">
+    <span class="tag">Agent · app.autolab.ai/projects/qsimeon/growlab</span><br style="line-height:2.4">
+    <span class="tag">Code · github.com/qsimeon/growlab</span>
+  </p>
+</section>
+
+</div>
+<div class="nav"><span id="n">1</span> / <span id="t">15</span> &nbsp;·&nbsp; ← → </div>
+<script>
+const S=[...document.querySelectorAll('section')];
+let i=0;
+const show=n=>{i=Math.max(0,Math.min(S.length-1,n));
+  S.forEach((s,k)=>s.classList.toggle('on',k===i));
+  document.getElementById('n').textContent=i+1;
+  document.getElementById('bar').style.width=((i+1)/S.length*100)+'%';
+  location.hash=i+1;};
+document.getElementById('t').textContent=S.length;
+addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();show(i+1)}
+  if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();show(i-1)}
+  if(e.key==='Home')show(0); if(e.key==='End')show(S.length-1);});
+// Deliberately no click-to-advance: a stray click mid-demo should not jump slides.
+// Same-document hash changes don't reload, so back/forward and #N links need this.
+addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1))-1; if(n!==i)show(n||0)});
+show(parseInt(location.hash.slice(1))-1||0);
+</script>
+</body>
+</html>

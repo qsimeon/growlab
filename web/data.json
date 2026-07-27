@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-26T23:47:15+00:00",
+ "generated_at": "2026-07-27T00:29:03+00:00",
  "control": {
   "flop_budget": 400000000000000.0,
   "seeds": 3,
@@ -3834,9 +3834,16 @@
   "url": "https://app.autolab.ai/projects/qsimeon/growlab",
   "experiments": [
    {
+    "id": "83ae0335",
+    "status": "discarded",
+    "metric": 4.112,
+    "title": "Finer-grained growth trajectory (7 interleaved eve",
+    "created": "2026-07-26T23:56:06"
+   },
+   {
     "id": "45daf18a",
-    "status": "running",
-    "metric": null,
+    "status": "merged",
+    "metric": 4.074,
     "title": "Growth completes ~step 800 (even spacing bracket)",
     "created": "2026-07-26T23:24:47"
    },
@@ -3883,8 +3890,8 @@
     "created": "2026-07-26T22:35:27"
    }
   ],
-  "best": 4.076,
-  "n_done": 6,
+  "best": 4.074,
+  "n_done": 8,
   "live": false
  }
 }
