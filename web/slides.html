@@ -73,6 +73,20 @@
   section.on .rise:nth-of-type(2){animation-delay:.45s}
   section.on .rise:nth-of-type(3){animation-delay:.7s}
   @keyframes rise{to{opacity:1;transform:none}}
+  /* Print / PDF export: lay every slide out as its own landscape page with
+     all entrance animations resolved to their finished state. */
+  @page{size:1440px 810px;margin:0}
+  @media print{
+    html,body{height:auto;overflow:visible;background:#0d0d0d}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .deck{height:auto}
+    section{position:relative;inset:auto;display:flex!important;opacity:1!important;
+            width:1440px;height:810px;page-break-after:always;break-after:page}
+    section:last-child{page-break-after:auto;break-after:auto}
+    .bar,.nav{display:none!important}
+    .draw{stroke-dashoffset:0!important;animation:none!important}
+    .fade,.rise{opacity:1!important;transform:none!important;animation:none!important}
+  }
 </style>
 </head>
 <body>
