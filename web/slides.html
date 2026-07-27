@@ -302,48 +302,53 @@
     </figure>
     <div>
       <h2 style="font-size:clamp(20px,2.3vw,31px)">Ahead from the start, and never overtaken.</h2>
-      <p style="margin-top:14px">The growing model matches the baseline's <em>final</em> score using
-        about <strong>60% of the compute</strong>, then keeps going with what is left.</p>
-      <div style="display:flex;gap:36px;margin-top:24px">
-        <div><div class="stat-k">Baseline</div><div class="stat fl">5.02</div></div>
-        <div><div class="stat-k">Growing</div><div class="stat gr">4.11</div></div>
+      <p style="margin-top:14px">Every growing model beat every baseline. The gap holds even after we
+        gave the baseline <strong>its own better learning rate</strong>.</p>
+      <div style="display:flex;gap:30px;margin-top:22px;flex-wrap:wrap">
+        <div><div class="stat-k">Baseline, tuned</div><div class="stat fl">4.51</div>
+          <div class="stat-m">± 0.015</div></div>
+        <div><div class="stat-k">Growing</div><div class="stat gr">4.11</div>
+          <div class="stat-m">± 0.053</div></div>
+        <div><div class="stat-k">Gap</div><div class="stat good">0.40</div>
+          <div class="stat-m">nats, no overlap</div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 7 · STABILITY -->
+<!-- 7 · THE SELF-AUDIT -->
 <section>
-  <div class="kicker">Result · the part that surprised us</div>
+  <div class="kicker">Then we tried to break our own result</div>
   <div class="split wide">
     <figure>
-      <svg viewBox="0 0 460 200">
-        <line class="ax" x1="40" y1="158" x2="444" y2="158"/>
-        <g class="tk" text-anchor="middle">
-          <text x="60" y="176">4.0</text><text x="156" y="176">4.4</text>
-          <text x="252" y="176">4.8</text><text x="348" y="176">5.2</text><text x="444" y="176">5.6</text>
+      <svg viewBox="0 0 460 214">
+        <text class="lb" x="6" y="14">FIRST NUMBER WE GOT</text>
+        <g class="fade">
+          <rect x="6" y="24" width="448" height="40" rx="8" fill="#0ca30c" fill-opacity=".1" stroke="#0ca30c" stroke-opacity=".35"/>
+          <text x="24" y="49" fill="#fff" font-size="13">0.91 nats better &nbsp;·&nbsp; “102× more stable”</text>
         </g>
-        <text class="lb" x="242" y="194" text-anchor="middle">final score of each individual model — lower is better</text>
-        <text class="sl fade" x="40" y="40" fill="#d95926">growing</text>
-        <g fill="#d95926" class="fade d1">
-          <circle cx="79" cy="64" r="9"/><circle cx="84" cy="64" r="9"/><circle cx="102" cy="64" r="9"/>
+        <text class="lb fade d1" x="6" y="92">WHAT SURVIVED THE AUDIT</text>
+        <g class="fade d2">
+          <rect x="6" y="102" width="448" height="40" rx="8" fill="#d95926" fill-opacity=".12" stroke="#d95926" stroke-opacity=".45"/>
+          <text x="24" y="127" fill="#fff" font-size="13">0.40 nats better, still no overlap</text>
         </g>
-        <text class="sl fade d2" x="40" y="126" fill="#3987e5">baseline</text>
-        <g fill="#3987e5" class="fade d2">
-          <circle cx="171" cy="104" r="9"/><circle cx="321" cy="104" r="9"/><circle cx="425" cy="104" r="9"/>
+        <g class="fade d3">
+          <rect x="6" y="152" width="448" height="54" rx="8" fill="#fab219" fill-opacity=".09" stroke="#fab219" stroke-opacity=".4"/>
+          <text x="24" y="174" fill="#fab219" font-size="12" font-weight="600">…and one claim died outright</text>
+          <text x="24" y="194" fill="#c3c2b7" font-size="11.5">an unconstrained 1.2M flat model scores 3.905 — better than either</text>
         </g>
-        <line class="fade d3" x1="137" y1="46" x2="137" y2="140" stroke="#8b8983" stroke-dasharray="4 4"/>
-        <text class="fade d3" x="145" y="52" fill="#8b8983" font-size="11">every growing model beat every baseline</text>
       </svg>
-      <figcaption>Each dot is one independently trained model.</figcaption>
+      <figcaption>We ran the checks we had only named, and reported what came back.</figcaption>
     </figure>
     <div>
-      <h2 style="font-size:clamp(19px,2.1vw,29px)">Growing did not just win. It won <span class="gr">reliably</span>.</h2>
-      <p style="margin-top:14px">The three growing models landed on top of each other. The three
-        baselines scattered across a full point.</p>
-      <p style="margin-top:14px">Starting small seems to protect the model through the fragile early
-        phase, when a strong learning rate can otherwise destabilise it.
-        <strong>Growth behaves like a curriculum.</strong></p>
+      <h2 style="font-size:clamp(19px,2.1vw,29px)">Two of our own claims did not hold.</h2>
+      <p style="margin-top:14px"><strong>The baseline was mis-tuned.</strong> It ran at a learning rate
+        chosen for the growing model. Given its own, it became <em>more</em> stable than ours — and the
+        gap halved.</p>
+      <p style="margin-top:14px"><strong>The finish line was too big.</strong> We pinned both arms to a
+        size roughly 10× above what this budget wants. Remove that and a plain small model wins.</p>
+      <p style="margin-top:16px" class="lead" style="font-size:19px">Growth wins <span class="gr">when the
+        target size is fixed</span> — not in general.</p>
     </div>
   </div>
 </section>

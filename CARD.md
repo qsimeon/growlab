@@ -1,74 +1,83 @@
-# Sundai card — paste into sundai.club/pitch
+# Sundai project card — paste into sundai.club/pitch
 
-**Title:** GrowLab — a model that grows its parameters while it learns
+**Title:** GrowLab — an AI agent researching how models should grow
 
 **One-liner:**
-Scaling laws tell you how big to make a model. They never asked what shape it
-should be *over time*. We let an AI agent search that space — and it found
-schedules that beat training at full size from step 0.
-
-**The pitch (card body):**
-
-Chinchilla asks: given compute *C*, choose *N* and *D*. It assumes the parameter
-count *N* is **constant** for the whole run — and never argued for it. Training
-compute is the *area under the parameter-count curve*, so we asked the obvious
-next question:
-
-> **Given compute *C*, choose the trajectory N(t).** The answer is a shape, not a number.
-
-A model that starts small buys more optimizer steps for the same compute, because
-early training learns cheap statistics that need almost no capacity.
-
-**What we ran today** — the control the prior work skipped. Flat vs grown at
-identical FLOP budget, identical LR schedule, identical data order, same final
-architecture, 3 seeds each:
-
-| | val loss | steps bought |
-|---|---|---|
-| flat (constant N) | 5.024 ± 0.532 | 2433 |
-| **grown N(t)** | **4.111 ± 0.053** | **2908** |
-
-1. **Growth wins with complete separation** — every grown seed beats every flat seed.
-2. **Growth is 102× more stable across seeds.** At this learning rate, starting at
-   full size is unstable and starting small isn't. Growth buys *learning-rate
-   robustness*, acting as a curriculum — not just compute.
-
-**Then we handed the search to an agent.** The space is brutal (when to grow ×
-how much × width vs depth × how to init × LR around each event). Six hand-run
-points is not a search. **Autolab**'s agent reproduced our hand-built schedule
-exactly (4.111), then **beat it (4.076)** by shifting growth 50 steps earlier,
-and is now bracketing the optimum — autonomously, while we built the frontend.
-**Maritime** hosts the live dashboard so the demo doesn't depend on a laptop.
-
-**We also audited our own headline.** The result we started from claimed "same
-loss at 54% of the FLOPs." Decomposed, that was 60% fewer steps × 90% smaller on
-average — growth was doing **9.7%** of the work, and every run used a single
-seed. We found three more problems and fixed them before trusting anything:
-FLOP-budgeting instead of wall-clock; a 4k vocab (at 50k vocab the embedding was
-91% of params, so growth could only touch ~9% of compute); and the growth
-operator itself, which zeroed new attention weights — reproducing the *softmax
-barrier* inside the very direction meant to escape it.
-
-**Links**
-- Live dashboard: `<MARITIME_URL>`
-- Code: https://github.com/qsimeon/growlab
-- Agent's search: https://app.autolab.ai/projects/qsimeon/growlab
-
-**Built with:** Autolab (autonomous research loop) · Maritime (hosting) · PyTorch/MPS
+We handed a real research question to an autonomous agent, let it run its own
+experiments on our hardware, published the results live — and then spent the
+last hour trying to break our own finding. It half broke.
 
 ---
 
-## Demo script (5 min, no slides)
+## The card body
 
-1. **The question** (45s) — show the two N(t) shapes on the dashboard. "Compute is
-   the area under this curve. Everyone trains the flat one. Nobody argued for it."
-2. **The control** (90s) — scroll to the loss chart. Orange under blue the whole
-   way. "Same FLOPs, same LR, same data, same final architecture. Every grown seed
-   beats every flat seed, and it's 102× steadier."
-3. **The honesty beat** (45s) — "We started from a 54%-FLOPs claim. We audited it:
-   n=1, four things changed at once, and the vocab was eating 91% of the compute.
-   Here's the version that survives."
-4. **The agent** (90s) — scroll to the Autolab panel, live. "We gave the search to
-   an agent. It reproduced our schedule, then beat it. It's still running."
-5. **Close** (30s) — "The compute-optimal parameter trajectory is not flat. Now
-   there's a harness that can find its shape."
+**The question.** Scaling laws tell you how many parameters to buy for a given
+compute budget. They assume you buy them all on day one and keep them for the
+whole run. Nobody argued for that — it is just how models are built. Training
+cost is the area under the parameter-count curve, so we asked what happens if
+the model is allowed to grow while it learns.
+
+**The system — this is the part we actually built.**
+
+- **Autolab** ran the science. Its research agent invented a growth schedule,
+  dispatched it to our laptop as an execution node, read back a single score,
+  and decided what to try next. It ran **8 full experiments autonomously**.
+  After the first one, no human chose what to try. It reproduced our
+  hand-written schedule exactly, then beat it, then stopped and told us the
+  remaining differences were below the noise floor.
+- **Maritime** made it public. An always-on machine serves the live results
+  page and the slide deck, so the demo exists whether or not our laptop is open.
+
+Two agents, two jobs: one does the research, the other publishes it.
+
+**What the experiment actually compares.** A baseline trained at full size from
+step 0, against a model growing 1.2M → 5.9M parameters. Same compute budget
+counted in operations, same data in the same order (WikiText-103), same final
+architecture, 3 models per side.
+
+| | val loss | seed spread |
+|---|---|---|
+| baseline, constant size | 4.509 | ± 0.015 |
+| **grown** | **4.111** | ± 0.053 |
+
+**The narrow claim that survives:** if you must reach a given model size,
+**growing into it beats starting there** — 0.40 nats, with every growing model
+beating every baseline. Being small early buys 19% more training steps for the
+same compute.
+
+**Then we tried to break it, and partly succeeded.** We ran an adversarial
+review of our own repo. Two things we had claimed did not survive:
+
+1. We first measured a 0.91-nat gap and a "102× more stable" result. Both were
+   artifacts of running the **baseline at a learning rate tuned for the growing
+   model**. Given its own sensible learning rate, the baseline is *more* stable
+   than the growing model, and the gap halves to 0.40.
+2. We had claimed the compute-optimal parameter trajectory is not flat. It is
+   not that simple: our experiment pinned both arms to a 5.9M endpoint that is
+   roughly **10× larger than compute-optimal for this budget**. Lift that
+   constraint and a plain 1.2M constant-size model scores **3.905**, beating our
+   growth trajectory outright.
+
+So the honest result is conditional: **growth wins when the target size is
+fixed and larger than the budget wants. It does not make growth compute-optimal
+in general.** We would rather report that than the bigger number.
+
+**Caveats we will not hide:** small models (5.9M), short runs, 3 seeds, and a
+per-run nondeterminism floor of ~0.05 on Apple Silicon — which means our
+four-decimal numbers carry about two significant figures of real signal.
+
+**Next:** trigger growth when progress stalls instead of on a fixed timetable;
+let the model choose wider vs deeper for itself; and repeat all of it at a size
+people actually train at.
+
+---
+
+## Links
+
+- **Live dashboard** — https://api.maritime.sh/a/961c500c-7530-4c1a-b8cd-d276b7bec384/
+- **Slides** — https://api.maritime.sh/a/961c500c-7530-4c1a-b8cd-d276b7bec384/slides.html
+- **The agent's search** — https://app.autolab.ai/projects/qsimeon/growlab
+- **Code** — https://github.com/qsimeon/growlab
+
+**Built with:** Autolab (autonomous research loop) · Maritime (hosting) ·
+PyTorch on Apple Silicon

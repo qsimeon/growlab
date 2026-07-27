@@ -21,17 +21,23 @@ Training compute is the area under the parameter-count curve. A model that start
 
 ## What we found today
 
-The control prior work skipped — flat vs grown at **identical FLOP budget, identical WSD schedule, identical peak LR, identical data order, same final architecture, 3 seeds each**:
+Flat vs grown at **identical FLOP budget, identical data order, same final architecture, 3 seeds each**, each arm at its own best learning rate:
 
 | arm | val loss | seeds | steps bought |
 |---|---|---|---|
-| flat | 5.024 ± **0.532** | 4.464, 5.088, 5.521 | 2433 |
-| **grown** | **4.111** ± **0.053** | 4.080, 4.172, 4.082 | **2908** |
+| flat (constant N) | 4.509 ± 0.015 | 4.525, 4.496, 4.506 | 2433 |
+| **grown** | **4.111** ± 0.053 | 4.080, 4.172, 4.082 | **2908** |
 
-1. **Growth wins, with complete separation** — every grown seed beats every flat seed. 0.913 nats, Cohen's d = 2.42 (Mann–Whitney U=0, one-tailed p=0.05).
-2. **Growth is 102× more stable across seeds** (σ 0.532 → 0.053). At this learning rate, starting at full size is unstable and starting small is not. Growth buys **learning-rate robustness** — acting as a curriculum — not just compute.
+**The claim that survives:** if you must reach a given model size, **growing into it beats starting there** — 0.40 nats, every grown seed beating every flat seed. Being small early buys 19% more steps for the same compute.
 
-*Named confound:* LR=1e-3 was inherited from the grown preset, so the flat arm runs at an LR it was never tuned for. An LR sweep on flat is the honest next experiment.
+### Then we audited our own result, and two claims died
+
+Our first measurement was a 0.91-nat gap and "102× more stable". Both were artifacts:
+
+1. **The flat arm was mis-tuned.** It ran at LR=1e-3, inherited from the grown preset. At its own best LR (5e-4) its seed spread collapses from 0.532 to **0.015** — *more* stable than grown — and the gap halves to 0.40.
+2. **The endpoint was ~10× too large.** Both arms were pinned to 5.9M params, while compute-optimal for a 4e14 budget is ≈0.6M. Lift that constraint and a plain flat **1.2M model scores 3.905**, beating the grown trajectory outright.
+
+So growth wins **when the target size is fixed and larger than the budget wants** — it is not compute-optimal in general. Per-run nondeterminism on Apple Silicon is ~0.05, so treat the last two decimals as noise.
 
 ## An agent searches the space
 

@@ -212,22 +212,32 @@ function render(d){
      <div class="m">± ${S[k].stdev.toFixed(4)} · ${S[k].n_seeds} seed${S[k].n_seeds>1?'s':''} · ${Math.max(...S[k].steps||[0])} steps</div></div>`).join('');
   if(c&&c.stats){
     const s=c.stats, sign=s.delta>=0?'−':'+';
-    document.getElementById('verdict').innerHTML=
-      `growth wins<span style="font-size:19px;font-weight:500"> — every seed, and ${s.variance_ratio.toFixed(0)}× steadier</span>`;
-    document.getElementById('verdict').style.color='var(--good)';
+    // Render the computed verdict, never a hardcoded string: a rerun where flat
+    // wins must say so on the public page.
+    const sep = c.verdict === 'grown wins' || (S.grown.mean < S.flat.mean);
+    document.getElementById('verdict').innerHTML = sep
+      ? `growth wins<span style="font-size:19px;font-weight:500"> — at a fixed target size</span>`
+      : c.verdict;
+    document.getElementById('verdict').style.color = sep ? 'var(--good)' : 'var(--warning)';
     document.getElementById('ctlnote').innerHTML=
-      `Flat vs grown — identical WSD schedule, identical peak LR, identical FLOP budget, identical data order, `
-     +`same final architecture. <strong>Every grown seed beats every flat seed</strong> (complete separation, `
-     +`Mann–Whitney U=0, one-tailed p=0.05; Cohen's d=${s.cohens_d.toFixed(2)}). The parametric test is weaker `
-     +`(Welch t=${s.welch_t.toFixed(2)}, df=2) only because flat's variance is ${s.variance_ratio.toFixed(0)}× larger — `
-     +`which is the second finding, not a caveat.`;
+      `Flat vs grown at identical FLOP budget, LR schedule, data order and final architecture. `
+     +`<strong>Every grown seed beats every flat seed</strong> (Cohen's d=${s.cohens_d.toFixed(2)}). `
+     +`<strong>Read this narrowly:</strong> both arms are pinned to a 5.9M endpoint that is ~10× above `
+     +`compute-optimal for this budget — an unconstrained 1.2M flat model scores 3.905 and beats both. `
+     +`Growth wins <em>when the target size is fixed</em>, not in general. `
+     +`Per-run nondeterminism on MPS is ~0.05, so treat the last two decimals as noise.`;
     tiles.insertAdjacentHTML('beforeend',
       `<div class="tile"><div class="k">Loss, grown vs flat</div>
        <div class="v">${sign}${Math.abs(s.delta).toFixed(3)}</div>
        <div class="m">Cohen's d ${s.cohens_d.toFixed(2)} · Welch t ${s.welch_t.toFixed(2)}, df 2</div></div>
-       <div class="tile"><div class="k">Seed spread (σ)</div>
-       <div class="v">${s.sd_flat.toFixed(3)} → ${s.sd_grown.toFixed(3)}</div>
-       <div class="m">flat → grown · budget ${(c.flop_budget).toExponential(1)} FLOPs</div></div>`);
+       <div class="tile"><div class="k">vs LR-matched baseline</div>
+       <div class="v">−0.397</div>
+       <div class="m">flat at its own best LR (5e-4) scores 4.509 ± 0.015 —
+       separation holds, gap halves</div></div>
+       <div class="tile"><div class="k">Unconstrained baseline</div>
+       <div class="v" style="color:var(--warning)">3.905</div>
+       <div class="m">a flat 1.2M model, same budget, no fixed endpoint — beats
+       the grown 5.9M trajectory</div></div>`);
   } else if(arms.length) document.getElementById('verdict').textContent='running…';
 
   const a=d.autolab, ours=S.grown.mean;
