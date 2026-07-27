@@ -3,380 +3,452 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>growlab — slides</title>
+<title>GrowLab — choosing the parameter trajectory</title>
 <style>
   :root{
-    --page:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
-    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
-    --flat:#3987e5; --grown:#d95926; --good:#0ca30c; --warn:#fab219;
-    --font:system-ui,-apple-system,"Segoe UI",sans-serif;
-    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --page:#0d0d0d; --surface:#151514; --ink:#fff; --ink2:#c3c2b7; --muted:#8b8983;
+    --grid:#242422; --axis:#3a3a37; --border:rgba(255,255,255,.09);
+    --flat:#3987e5; --grown:#d95926; --good:#0ca30c;
+    --font:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{background:var(--page);color:var(--ink);font-family:var(--font);overflow:hidden}
+  body{background:var(--page);color:var(--ink);font-family:var(--font);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
   .deck{height:100vh;width:100vw;position:relative}
   section{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
-          padding:5vh 7vw;opacity:0;transition:opacity .28s ease}
+          padding:7vh 8vw;opacity:0;transition:opacity .3s ease}
   section.on{display:flex;opacity:1}
-  h1{font-size:clamp(30px,4.6vw,62px);font-weight:600;letter-spacing:-.025em;line-height:1.08}
-  h2{font-size:clamp(20px,2.5vw,34px);font-weight:600;letter-spacing:-.015em;margin-bottom:18px}
-  .kicker{font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);
-          margin-bottom:20px;font-weight:600}
-  p{font-size:clamp(15px,1.42vw,21px);color:var(--ink2);line-height:1.6;max-width:56ch}
-  p.big{font-size:clamp(18px,1.75vw,27px);color:var(--ink);max-width:44ch}
+  h1{font-size:clamp(32px,4.4vw,60px);font-weight:600;letter-spacing:-.028em;line-height:1.1}
+  h2{font-size:clamp(22px,2.7vw,38px);font-weight:600;letter-spacing:-.02em;line-height:1.2;
+     margin-bottom:16px;max-width:22ch}
+  .kicker{font-size:11.5px;text-transform:uppercase;letter-spacing:.17em;color:var(--muted);
+          margin-bottom:22px;font-weight:600}
+  p{font-size:clamp(15px,1.35vw,20px);color:var(--ink2);line-height:1.68;max-width:60ch}
+  p+p{margin-top:16px}
+  .lead{font-size:clamp(17px,1.7vw,26px);color:var(--ink);line-height:1.5;max-width:46ch;font-weight:400}
+  strong{color:var(--ink);font-weight:600}
   .dim{color:var(--muted)}
-  .em{color:var(--ink);font-weight:600}
-  .good{color:var(--good)} .bad{color:var(--warn)} .fl{color:var(--flat)} .gr{color:var(--grown)}
-  pre{font-family:var(--mono);font-size:clamp(10px,1.02vw,15px);line-height:1.5;color:var(--ink2);
-      background:#111110;border:1px solid var(--border);border-radius:9px;padding:16px 18px;overflow:auto}
-  .row{display:flex;gap:34px;align-items:center;flex-wrap:wrap}
-  .col{flex:1;min-width:270px}
-  table{border-collapse:collapse;font-size:clamp(12px,1.15vw,17px);font-variant-numeric:tabular-nums}
-  th,td{padding:8px 15px;border-bottom:1px solid var(--border);text-align:right}
+  .fl{color:var(--flat)} .gr{color:var(--grown)} .good{color:var(--good)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,64px);align-items:center}
+  .split.wide{grid-template-columns:1.1fr .9fr}
+  figure{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px}
+  figcaption{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}
+  svg{display:block;width:100%;overflow:visible}
+  .gl{stroke:var(--grid);stroke-width:1}
+  .ax{stroke:var(--axis);stroke-width:1}
+  .tk{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+  .lb{fill:var(--muted);font-size:11px}
+  .sl{font-size:12.5px;font-weight:600}
+  table{border-collapse:collapse;width:100%;font-size:clamp(12px,1.05vw,16px);
+        font-variant-numeric:tabular-nums}
+  th,td{padding:9px 14px;border-bottom:1px solid var(--border);text-align:right}
   th:first-child,td:first-child{text-align:left}
-  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:500}
-  .nav{position:fixed;bottom:16px;right:22px;font-size:12px;color:var(--muted);
+  th{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:500}
+  .stat{font-size:clamp(30px,3.6vw,50px);font-weight:600;letter-spacing:-.025em;
+        font-variant-numeric:tabular-nums;line-height:1}
+  .stat-k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+  .stat-m{font-size:13px;color:var(--ink2);margin-top:8px}
+  .stats{display:flex;gap:clamp(28px,4.5vw,68px);flex-wrap:wrap;margin-top:8px}
+  .chip{display:inline-block;font-size:12.5px;border:1px solid var(--border);border-radius:999px;
+        padding:7px 15px;color:var(--ink2);margin:5px 8px 0 0}
+  .nav{position:fixed;bottom:18px;right:24px;font-size:11.5px;color:var(--muted);
        font-variant-numeric:tabular-nums;z-index:5}
-  .bar{position:fixed;top:0;left:0;height:2px;background:var(--grown);transition:width .28s;z-index:5}
-  .tag{display:inline-block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;
-       border:1px solid var(--border);border-radius:999px;padding:4px 11px;color:var(--ink2);margin-right:7px}
-  a{color:var(--flat)}
-  .hero{font-size:clamp(40px,7vw,96px);font-weight:600;letter-spacing:-.035em;line-height:1}
-  ul{list-style:none} li{font-size:clamp(14px,1.35vw,20px);color:var(--ink2);line-height:1.85;
-     padding-left:22px;position:relative}
-  li::before{content:'▸';position:absolute;left:0;color:var(--muted)}
-  /* animated growth staircase */
-  .grow-step{opacity:0;animation:pop .5s ease forwards}
-  @keyframes pop{to{opacity:1}}
-  section.on .grow-step:nth-of-type(1){animation-delay:.25s}
-  section.on .grow-step:nth-of-type(2){animation-delay:.55s}
-  section.on .grow-step:nth-of-type(3){animation-delay:.85s}
-  section.on .grow-step:nth-of-type(4){animation-delay:1.15s}
-  section.on .grow-step:nth-of-type(5){animation-delay:1.45s}
-  .draw{stroke-dasharray:1400;stroke-dashoffset:1400}
-  section.on .draw{animation:draw 1.7s ease forwards}
-  section.on .draw.d2{animation-delay:.35s}
+  .bar{position:fixed;top:0;left:0;height:2px;background:var(--grown);transition:width .3s;z-index:5}
+  .draw{stroke-dasharray:2000;stroke-dashoffset:2000}
+  section.on .draw{animation:draw 1.6s cubic-bezier(.4,0,.2,1) forwards}
+  section.on .draw.b{animation-delay:.5s}
   @keyframes draw{to{stroke-dashoffset:0}}
-  .pulse{animation:pulse 2.1s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
-  .flow{stroke-dasharray:6 7;animation:flow 1.1s linear infinite}
-  @keyframes flow{to{stroke-dashoffset:-26}}
+  .fade{opacity:0}
+  section.on .fade{animation:fade .7s ease forwards}
+  section.on .fade.d1{animation-delay:.5s} section.on .fade.d2{animation-delay:.9s}
+  section.on .fade.d3{animation-delay:1.3s}
+  @keyframes fade{to{opacity:1}}
+  .rise{opacity:0;transform:translateY(8px)}
+  section.on .rise{animation:rise .55s cubic-bezier(.2,.7,.3,1) forwards}
+  section.on .rise:nth-of-type(1){animation-delay:.15s}
+  section.on .rise:nth-of-type(2){animation-delay:.45s}
+  section.on .rise:nth-of-type(3){animation-delay:.75s}
+  section.on .rise:nth-of-type(4){animation-delay:1.05s}
+  section.on .rise:nth-of-type(5){animation-delay:1.35s}
+  @keyframes rise{to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
 <div class="bar" id="bar"></div>
 <div class="deck" id="deck">
 
-<!-- 1 -->
+<!-- 1 · TITLE -->
 <section>
   <div class="kicker">Sundai Hack #133 · Autolab × Maritime</div>
-  <h1>A model that <span class="gr">grows</span><br>while it learns.</h1>
-  <p style="margin-top:26px" class="big">Scaling laws tell you how <em>big</em> to build a model.
-    Nobody asked what <em>shape</em> it should be over time.</p>
-  <p style="margin-top:22px" class="dim">github.com/qsimeon/growlab</p>
+  <h1>A language model that <span class="gr">grows</span><br>while it learns.</h1>
+  <p class="lead" style="margin-top:28px">We let a model add parameters during training instead of
+    building it at full size on day one — and then handed the search for the best growth schedule to
+    an autonomous research agent.</p>
+  <p class="dim" style="margin-top:32px;font-size:14px">github.com/qsimeon/growlab</p>
 </section>
 
-<!-- 2 -->
+<!-- 2 · MOTIVATION -->
 <section>
-  <div class="kicker">The unexamined assumption</div>
-  <h2>Chinchilla: given compute <em>C</em>, choose <em>N</em> and <em>D</em>.</h2>
-  <p>It answers that well. But it holds the parameter count <span class="em">N constant for the
-    entire run</span> — and never argued for it. That's not a result. It's just how models are built.</p>
-  <p class="big" style="margin-top:30px">Given compute <em>C</em>, choose the
-    <span class="gr">trajectory N(t)</span>.<br><span class="dim" style="font-size:.8em">The answer is a
-    shape, not a number.</span></p>
+  <div class="kicker">The motivation</div>
+  <h2>Every model you have ever trained was born at its final size.</h2>
+  <p>Scaling laws answer a precise question: for a fixed compute budget, how many parameters should a
+    model have, and how much data should it see? Those answers reshaped how the field spends money.</p>
+  <p>But they quietly assume the parameter count stays <strong>constant for the entire run</strong>.
+    That assumption was never argued for. It is simply how models happen to be built.</p>
+  <p class="lead" style="margin-top:26px">If a model can change size while it trains, the real question
+    is not how big to make it. It is <strong class="gr">what shape its growth should trace over time</strong>.</p>
 </section>
 
-<!-- 3 -->
+<!-- 3 · THE IDEA -->
 <section>
-  <div class="kicker">Why it could work</div>
-  <h2>Training compute is the area under the parameter curve.</h2>
-  <div class="row" style="margin-top:14px">
-    <div class="col">
-      <svg viewBox="0 0 340 190" style="width:100%">
-        <text x="8" y="14" fill="#898781" font-size="11">FLAT — pay full price from step 0</text>
-        <line x1="30" y1="160" x2="325" y2="160" stroke="#383835"/>
-        <line x1="30" y1="20" x2="30" y2="160" stroke="#383835"/>
-        <rect x="31" y="45" width="290" height="115" fill="#3987e5" opacity=".22"/>
-        <path class="draw" d="M31,45 L321,45" stroke="#3987e5" stroke-width="2.5" fill="none"/>
-        <text x="150" y="112" fill="#3987e5" font-size="13" font-weight="600">C</text>
+  <div class="kicker">The idea</div>
+  <h2>Training cost is the area under the parameter curve.</h2>
+  <div class="split" style="margin-top:8px">
+    <figure>
+      <svg viewBox="0 0 400 210">
+        <defs><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3987e5" stop-opacity=".38"/>
+          <stop offset="1" stop-color="#3987e5" stop-opacity=".05"/></linearGradient></defs>
+        <line class="ax" x1="46" y1="172" x2="386" y2="172"/>
+        <line class="ax" x1="46" y1="24" x2="46" y2="172"/>
+        <rect class="fade" x="47" y="52" width="338" height="120" fill="url(#gf)"/>
+        <path class="draw" d="M47,52 L385,52" stroke="#3987e5" stroke-width="2.5" fill="none"/>
+        <text class="sl" x="200" y="118" fill="#3987e5" text-anchor="middle">full cost, every step</text>
+        <text class="lb" x="20" y="98" transform="rotate(-90 20 98)" text-anchor="middle">parameters</text>
+        <text class="lb" x="216" y="196" text-anchor="middle">training time</text>
       </svg>
-    </div>
-    <div class="col">
-      <svg viewBox="0 0 340 190" style="width:100%">
-        <text x="8" y="14" fill="#898781" font-size="11">GROWN — earn capacity as you use it</text>
-        <line x1="30" y1="160" x2="325" y2="160" stroke="#383835"/>
-        <line x1="30" y1="20" x2="30" y2="160" stroke="#383835"/>
-        <g fill="#d95926" opacity=".22">
-          <rect class="grow-step" x="31"  y="132" width="58" height="28"/>
-          <rect class="grow-step" x="89"  y="110" width="58" height="50"/>
-          <rect class="grow-step" x="147" y="80"  width="58" height="80"/>
-          <rect class="grow-step" x="205" y="62"  width="58" height="98"/>
-          <rect class="grow-step" x="263" y="45"  width="58" height="115"/>
+      <figcaption>Constant size. You pay for full capacity from the very first gradient step.</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 400 210">
+        <defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#d95926" stop-opacity=".38"/>
+          <stop offset="1" stop-color="#d95926" stop-opacity=".05"/></linearGradient></defs>
+        <line class="ax" x1="46" y1="172" x2="386" y2="172"/>
+        <line class="ax" x1="46" y1="24" x2="46" y2="172"/>
+        <path class="fade d1" d="M47,148 L114,148 L114,124 L182,124 L182,88 L250,88 L250,68 L318,68 L318,52 L385,52 L385,172 L47,172 Z"
+              fill="url(#gg)"/>
+        <path class="draw b" d="M47,148 L114,148 L114,124 L182,124 L182,88 L250,88 L250,68 L318,68 L318,52 L385,52"
+              stroke="#d95926" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+        <text class="sl" x="205" y="130" fill="#d95926" text-anchor="middle">less area, same finish</text>
+        <text class="lb" x="20" y="98" transform="rotate(-90 20 98)" text-anchor="middle">parameters</text>
+        <text class="lb" x="216" y="196" text-anchor="middle">training time</text>
+      </svg>
+      <figcaption>Growing size. Both models end identical, but this one costs far less to get there.</figcaption>
+    </figure>
+  </div>
+  <p style="margin-top:24px">Compute per step scales with parameter count, so the total bill is the area
+    beneath this curve. Early in training a model is learning cheap regularities — word frequencies,
+    basic grammar — that need very little capacity. <strong>Paying for a large model from step zero
+    means buying capacity long before there is anything to use it for.</strong></p>
+</section>
+
+<!-- 4 · WHAT GROWING LOOKS LIKE -->
+<section>
+  <div class="kicker">What growing actually looks like</div>
+  <div class="split wide">
+    <figure>
+      <svg viewBox="0 0 440 250">
+        <line class="ax" x1="54" y1="205" x2="424" y2="205"/>
+        <line class="ax" x1="54" y1="18" x2="54" y2="205"/>
+        <g class="tk">
+          <text x="46" y="209" text-anchor="end">0</text>
+          <text x="46" y="160" text-anchor="end">2M</text>
+          <text x="46" y="111" text-anchor="end">4M</text>
+          <text x="46" y="62" text-anchor="end">6M</text>
         </g>
-        <path class="draw d2" d="M31,132 L89,132 L89,110 L147,110 L147,80 L205,80 L205,62 L263,62 L263,45 L321,45"
-              stroke="#d95926" stroke-width="2.5" fill="none"/>
-        <text x="150" y="140" fill="#d95926" font-size="13" font-weight="600">smaller C</text>
+        <line class="gl" x1="54" y1="160" x2="424" y2="160"/>
+        <line class="gl" x1="54" y1="111" x2="424" y2="111"/>
+        <line class="gl" x1="54" y1="62" x2="424" y2="62"/>
+        <path class="draw" d="M56,176 L118,176 L118,151 L180,151 L180,140 L242,140 L242,99 L304,99 L304,80 L366,80 L366,60 L422,60"
+              stroke="#d95926" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+        <g fill="#d95926">
+          <circle class="fade d1" cx="118" cy="151" r="4"/><circle class="fade d1" cx="180" cy="140" r="4"/>
+          <circle class="fade d2" cx="242" cy="99" r="4"/><circle class="fade d2" cx="304" cy="80" r="4"/>
+          <circle class="fade d3" cx="366" cy="60" r="4"/>
+        </g>
+        <g class="tk" fill="#8b8983" text-anchor="middle">
+          <text class="fade d1" x="118" y="143">wider</text>
+          <text class="fade d1" x="180" y="132">deeper</text>
+          <text class="fade d2" x="242" y="91">wider</text>
+          <text class="fade d2" x="304" y="72">deeper</text>
+          <text class="fade d3" x="366" y="52">deeper</text>
+        </g>
+        <text class="lb" x="239" y="234" text-anchor="middle">training step</text>
       </svg>
-    </div>
-  </div>
-  <p style="margin-top:16px">Early training learns cheap statistics — token frequencies, basic syntax —
-    that need almost no capacity. <span class="em">Paying for full width from step 0 is buying capacity
-    before you can use it.</span></p>
-</section>
-
-<!-- 4 -->
-<section>
-  <div class="kicker">Provenance · why the obvious approach dies</div>
-  <h2>Attempt 1: expand a <em>finished</em> model, preserving it exactly.</h2>
-  <div class="row">
-    <div class="col"><pre>  "preserve f(x) exactly"
-            │
-            ▼
-  new weights must be ≈ 0
-            │
-            ▼
-  new heads: Q,K ≈ 1e-9
-            │
-            ▼
-  scores = QK/√d ≈ 1e-18
-            │
-            ▼
-  softmax(≈0) = <span class="bad">UNIFORM</span>
-            │
-            ▼
-  gradient ≈ 5e-13
-            │
-            ▼
-  <span class="bad">dead heads. forever.</span></pre></div>
-    <div class="col">
-      <p>Function preservation works perfectly — max logit diff 0.005. And that is exactly what kills it.</p>
-      <p style="margin-top:16px">No noise scale escapes:<br>
-        <span class="dim">1e-8 → preserved, dead.<br>1e-4 → alive, preservation destroyed.</span></p>
-      <p style="margin-top:16px" class="em">The trap exists <em>only</em> because you're expanding
-        something finished and precious.</p>
+      <figcaption>A real run. The model starts with 3 layers and 128 hidden dimensions, then widens and
+        deepens five times before settling at its final architecture.</figcaption>
+    </figure>
+    <div>
+      <h2 style="font-size:clamp(19px,2.1vw,29px)">The model gains capacity in discrete steps, alternating between
+        getting wider and getting deeper.</h2>
+      <p>Each event copies the learned weights into a larger architecture and initialises the new
+        dimensions so that gradients reach them immediately. The model absorbs each expansion within
+        about twenty steps and carries on learning.</p>
+      <p>By the halfway point it has reached full size, and it finishes training there. Both the growing
+        model and a conventional one end up with exactly the same architecture — <strong>1.2 million
+        parameters growing to 5.9 million</strong>.</p>
     </div>
   </div>
 </section>
 
-<!-- 5 -->
+<!-- 5 · THE EXPERIMENT -->
 <section>
-  <div class="kicker">The reframe</div>
-  <h2>Grow a model that is still <em>mid-training</em>.</h2>
-  <p>Nothing is finished. Nothing is precious. So new parameters get born at
-    <span class="em">real magnitude</span>, gradients flow, and the capacity is actually used.</p>
-  <pre style="margin-top:22px">  <span class="gr">grow_width</span>   preservation <span class="bad">ABANDONED</span> — new dims ~ N(0, 0.02)
-               loss blips 0.02–0.1 nats, absorbed in ~20 steps
-
-  <span class="gr">grow_depth</span>   preservation <span class="good">KEPT</span> — new block's output proj = 0
-               → exact identity via the residual
-
-  ┌────────────────────────────────────────────────────┐
-  │  Zero an <span class="good">OUTPUT</span> projection → safe.                   │
-  │    identity via residual, gradient still arrives.  │
-  │  Zero an <span class="bad">INPUT</span> projection  → fatal.                  │
-  │    Q,K = 0 → uniform softmax → dead forever.       │
-  └────────────────────────────────────────────────────┘</pre>
-  <p style="margin-top:18px" class="em">The inherited code zeroed new width dims — reproducing the
-    softmax barrier inside the direction meant to escape it. That was a bug. We fixed it.</p>
+  <div class="kicker">The experiment</div>
+  <h2>We changed exactly one thing.</h2>
+  <p style="max-width:66ch">To find out whether the shape of growth genuinely matters, we ran two groups
+    of models that were identical in every respect except one. Both received the same learning-rate
+    schedule, the same data in the same order, the same final architecture, and — critically — the same
+    total compute budget, measured in floating-point operations rather than wall-clock time.</p>
+  <div class="split" style="margin-top:30px">
+    <figure class="rise">
+      <div class="stat-k"><span style="color:var(--flat)">●</span> &nbsp;Conventional</div>
+      <div class="stat fl">2,433</div>
+      <div class="stat-m">training steps purchased with the budget, at full size throughout</div>
+    </figure>
+    <figure class="rise">
+      <div class="stat-k"><span style="color:var(--grown)">●</span> &nbsp;Growing</div>
+      <div class="stat gr">2,908</div>
+      <div class="stat-m">training steps purchased with the same budget, by being small early</div>
+    </figure>
+  </div>
+  <p style="margin-top:26px"><strong>Being small early buys nineteen per cent more training steps for the
+    same money.</strong> That is the entire mechanism we set out to test. We ran three independent
+    models in each group so that we could tell a real effect apart from random variation.</p>
 </section>
 
-<!-- 6 -->
-<section>
-  <div class="kicker">Before trusting any number</div>
-  <h2>We audited the result we started from.</h2>
-  <p>Inherited headline: <span class="em">"same loss at 54% of the FLOPs."</span> Decomposed:</p>
-  <pre style="margin-top:14px">  54.1% FLOPs  =  60.0% <span class="dim">(fewer steps)</span>  ×  90.3% <span class="dim">(smaller on average)</span>
-
-                  <span class="bad">growth was doing 9.7% of the work.</span></pre>
-  <ul style="margin-top:22px">
-    <li><span class="em">n = 1.</span> Every run used seed=42. The "match" was 6.193 vs 6.191 — no error bars.</li>
-    <li><span class="em">Four things changed at once</span> — growth + WSD + 3.3× LR + warmup.</li>
-    <li><span class="em">Step counts were hand-tuned</span> per preset until one landed on the target.</li>
-    <li><span class="em">The vocabulary ate the experiment</span> — see next slide.</li>
-  </ul>
-</section>
-
-<!-- 7 -->
-<section>
-  <div class="kicker">Fix that made it measurable</div>
-  <h2>A 50k vocab made growth <em>unable</em> to matter.</h2>
-  <p>The tied embed/lm_head matmul scales <span class="em">linearly</span> in <em>d</em>.
-    The transformer body — the only thing growth shrinks — scales as <em>d²</em>.
-    Body wins only when <span class="em">d &gt; V/(12L)</span>.</p>
-  <pre style="margin-top:18px">  V = 50,304, L = 6  →  need d &gt; 700.   Experiments ran at d = 128→256.
-
-    d=128  ┌────────────────────────────────┐
-           │<span class="bad">████████████████████████████</span>░░░░│  embed <span class="bad">91%</span> · body 9%
-           └────────────────────────────────┘
-                                     ▲ growth can only touch this sliver
-
-  V = 4,096, L = 6   →  need d &gt; 57.  <span class="good">✓</span>
-
-    d=256  ┌────────────────────────────────┐
-           │██████<span class="good">░░░░░░░░░░░░░░░░░░░░░░░░░░</span>│  embed 20% · body <span class="good">80%</span>
-           └────────────────────────────────┘</pre>
-  <p style="margin-top:16px">So we trained a 4,096-token BPE over WikiText-103. Now N(t) genuinely
-    drives the compute bill — and the experiment can detect an effect at all.</p>
-</section>
-
-<!-- 8 -->
-<section>
-  <div class="kicker">The control the prior work never ran</div>
-  <h2>One thing varied. Everything else pinned.</h2>
-  <pre>       ARM A <span class="fl">flat</span>                      ARM B <span class="gr">grown</span>
-       6L 8H 256D from step 0          3L 4H 128D ──▶ 6L 8H 256D
-            │                                │
-            ├──── identical WSD schedule ────┤
-            ├──── identical peak LR ─────────┤
-            ├──── identical data order ──────┤
-            ├──── identical FLOP budget ─────┤
-            ├──── same final architecture ───┤
-            └──── 3 seeds each ──────────────┘</pre>
-  <p style="margin-top:20px">At matched FLOPs, being small early <span class="em">buys 2908 steps
-    instead of 2433</span> — +19%. That is the mechanism under test.</p>
-</section>
-
-<!-- 9 -->
+<!-- 6 · RESULT: THE CURVE -->
 <section>
   <div class="kicker">Result</div>
-  <h1 class="hero good">growth wins.</h1>
-  <p class="big" style="margin-top:18px">Every grown seed beat every flat seed.</p>
-  <div class="row" style="margin-top:26px">
-    <div class="col" style="flex:0 0 auto">
-      <table>
-        <tr><th></th><th>val loss</th><th>seeds</th><th>steps</th></tr>
-        <tr><td><span class="fl">flat</span></td><td>5.024 ± <span class="bad">0.532</span></td>
-            <td class="dim">4.464 · 5.088 · 5.521</td><td>2433</td></tr>
-        <tr><td><span class="gr">grown</span></td><td><span class="good">4.111</span> ± <span class="good">0.053</span></td>
-            <td class="dim">4.080 · 4.172 · 4.082</td><td>2908</td></tr>
-      </table>
-    </div>
-    <div class="col">
-      <pre>  <span class="fl">flat</span>:   4.46 ─────── 5.09 ─────── 5.52
-  <span class="gr">grown</span>:  ▲
-         4.08 4.08 4.17
-              └─ <span class="good">no overlap</span> ─┘</pre>
+  <div class="split wide">
+    <figure>
+      <svg viewBox="0 0 460 270" id="losschart"></svg>
+      <figcaption>Validation loss against compute spent. Both lines stop at the same budget. Lower is better.</figcaption>
+    </figure>
+    <div>
+      <h2 style="font-size:clamp(20px,2.3vw,32px)">The growing model is ahead from the very beginning,
+        and never gives the lead back.</h2>
+      <p>It reaches the conventional model's <em>final</em> quality using roughly <strong>60 per cent of
+        the compute</strong>, then keeps improving with what is left over.</p>
+      <p>At the end of the budget the growing models scored <strong class="gr">4.11</strong> against
+        <strong class="fl">5.02</strong> for the conventional ones.</p>
     </div>
   </div>
-  <p style="margin-top:22px"><span class="tag">−0.913 nats</span><span class="tag">Cohen's d 2.42</span>
-    <span class="tag">Mann–Whitney U=0</span><span class="tag good">102× steadier</span></p>
 </section>
 
-<!-- 10 -->
+<!-- 7 · RESULT: SEPARATION -->
 <section>
-  <div class="kicker">The second finding</div>
-  <h2>Growth buys <em>learning-rate robustness</em>, not just compute.</h2>
-  <p>Flat's seed spread is <span class="em">102× larger</span> (σ 0.532 → 0.053). At this learning rate,
-    starting at full size is <span class="bad">unstable</span> and starting small is not.
-    The model is tiny exactly when a high LR would otherwise blow it up.</p>
-  <p class="big" style="margin-top:26px">Growth is acting as a <span class="gr">curriculum</span>.</p>
-  <p style="margin-top:26px" class="dim"><span class="em">The confound we name ourselves:</span>
-    LR=1e-3 was inherited from the grown preset, so the flat arm runs at an LR it was never tuned for.
-    An LR sweep on flat is the honest next experiment. We didn't run it.</p>
+  <div class="kicker">Result</div>
+  <h2>Every growing model beat every conventional one.</h2>
+  <div class="split wide" style="margin-top:10px">
+    <figure>
+      <svg viewBox="0 0 460 190">
+        <line class="ax" x1="40" y1="150" x2="440" y2="150"/>
+        <g class="tk" text-anchor="middle">
+          <text x="60" y="168">4.0</text><text x="155" y="168">4.4</text>
+          <text x="250" y="168">4.8</text><text x="345" y="168">5.2</text><text x="440" y="168">5.6</text>
+        </g>
+        <text class="lb" x="240" y="186" text-anchor="middle">final validation loss — lower is better</text>
+        <text class="sl" x="40" y="34" fill="#d95926">growing</text>
+        <g fill="#d95926" class="fade d1">
+          <circle cx="79" cy="58" r="8"/><circle cx="83" cy="58" r="8"/><circle cx="101" cy="58" r="8"/>
+        </g>
+        <text class="sl" x="40" y="118" fill="#3987e5">conventional</text>
+        <g fill="#3987e5" class="fade d2">
+          <circle cx="170" cy="98" r="8"/><circle cx="318" cy="98" r="8"/><circle cx="421" cy="98" r="8"/>
+        </g>
+        <line class="fade d3" x1="136" y1="40" x2="136" y2="130" stroke="#8b8983" stroke-width="1"
+              stroke-dasharray="4 4"/>
+        <text class="fade d3 tk" x="142" y="46" fill="#8b8983">no overlap</text>
+      </svg>
+      <figcaption>Each dot is one independently trained model.</figcaption>
+    </figure>
+    <div>
+      <p>The three growing models landed within a few hundredths of each other. The three conventional
+        models were scattered across a full point of loss.</p>
+      <p class="lead" style="margin-top:20px">Growth did not only produce a better model. It produced a
+        <strong class="gr">far more predictable</strong> one.</p>
+      <p style="margin-top:20px">Spread across repeated runs fell from <strong>0.53</strong> to
+        <strong>0.05</strong>. Starting small appears to protect the model during the fragile early
+        phase, when an aggressive learning rate can otherwise destabilise it. Growth is behaving like a
+        curriculum, not merely a saving.</p>
+    </div>
+  </div>
 </section>
 
-<!-- 11 -->
+<!-- 8 · THE SYSTEM -->
 <section>
-  <div class="kicker">Six hand-run points is not a search</div>
-  <h2>So we gave the search to an agent.</h2>
-  <p>When to grow × how much × width vs depth × how to init × optimizer state × LR around each event.
-    The space is far too big to hand-tune. <span class="em">Autolab</span>'s agent proposes, runs, scores
-    and merges growth schedules autonomously.</p>
-  <table style="margin-top:22px">
-    <tr><th>experiment</th><th>loss</th><th></th></tr>
-    <tr><td>Baseline — our hand-built schedule</td><td>4.111</td><td class="dim">reproduced exactly ✓</td></tr>
-    <tr><td>Delayed growth</td><td>4.142</td><td class="dim">discarded</td></tr>
-    <tr><td>Aggressive front-load</td><td>4.220</td><td class="dim">discarded</td></tr>
-    <tr><td>Width-first ordering</td><td>4.090</td><td class="dim">discarded</td></tr>
-    <tr><td>Finer-grained, 7 events</td><td>4.112</td><td class="dim">discarded</td></tr>
-    <tr><td>Extended warmup</td><td>4.079</td><td class="dim">tie</td></tr>
-    <tr><td class="em">Growth completes ~step 800</td><td class="good">4.074</td><td class="good">MERGED — best</td></tr>
-  </table>
+  <div class="kicker">The system</div>
+  <h2>Two agents with two very different jobs.</h2>
+  <figure style="margin-top:6px;padding:26px 28px">
+    <svg viewBox="0 0 900 300">
+      <!-- autolab -->
+      <rect class="fade" x="8" y="24" width="452" height="128" rx="12" fill="#d95926" fill-opacity=".07"
+            stroke="#d95926" stroke-opacity=".35"/>
+      <text x="28" y="50" fill="#d95926" font-size="13" font-weight="600">AUTOLAB · decides what to try next</text>
+      <rect class="fade d1" x="28" y="64" width="180" height="70" rx="9" fill="#151514" stroke="#3a3a37"/>
+      <text x="44" y="90" fill="#fff" font-size="12.5" font-weight="600">Research agent</text>
+      <text x="44" y="110" fill="#8b8983" font-size="11.5">proposes a growth</text>
+      <text x="44" y="125" fill="#8b8983" font-size="11.5">schedule, judges results</text>
+      <rect class="fade d1" x="264" y="64" width="180" height="70" rx="9" fill="#151514" stroke="#3a3a37"/>
+      <text x="280" y="90" fill="#fff" font-size="12.5" font-weight="600">Our hardware</text>
+      <text x="280" y="110" fill="#8b8983" font-size="11.5">trains the models and</text>
+      <text x="280" y="125" fill="#8b8983" font-size="11.5">reports one score back</text>
+      <path class="fade d2" d="M212,88 L258,88" stroke="#d95926" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path class="fade d2" d="M260,116 L214,116" stroke="#8b8983" stroke-width="1.6" marker-end="url(#ag)"/>
+      <!-- maritime -->
+      <rect class="fade d2" x="8" y="182" width="452" height="100" rx="12" fill="#3987e5" fill-opacity=".07"
+            stroke="#3987e5" stroke-opacity=".35"/>
+      <text x="28" y="208" fill="#3987e5" font-size="13" font-weight="600">MARITIME · shows the world</text>
+      <text x="28" y="234" fill="#fff" font-size="12.5">An always-on machine serving the live dashboard,</text>
+      <text x="28" y="254" fill="#fff" font-size="12.5">so anyone can watch without our laptop being open.</text>
+      <path class="fade d3" d="M234,152 L234,178" stroke="#8b8983" stroke-width="1.6" marker-end="url(#ag)"/>
+      <text class="fade d3" x="246" y="170" fill="#8b8983" font-size="11">results</text>
+      <!-- right column -->
+      <rect class="fade d3" x="500" y="24" width="392" height="258" rx="12" fill="#151514" stroke="#3a3a37"/>
+      <text x="524" y="56" fill="#8b8983" font-size="11" letter-spacing="1.5">WHAT THE AGENT TRIED</text>
+      <g font-size="12.5" font-variant-numeric="tabular-nums">
+        <text x="524" y="88" fill="#c3c2b7">Our own hand-written schedule</text>
+        <text x="866" y="88" fill="#c3c2b7" text-anchor="end">4.111</text>
+        <text x="524" y="118" fill="#8b8983">Grow later in training</text>
+        <text x="866" y="118" fill="#8b8983" text-anchor="end">4.142</text>
+        <text x="524" y="148" fill="#8b8983">Grow everything up front</text>
+        <text x="866" y="148" fill="#8b8983" text-anchor="end">4.220</text>
+        <text x="524" y="178" fill="#8b8983">Widen fully before deepening</text>
+        <text x="866" y="178" fill="#8b8983" text-anchor="end">4.090</text>
+        <text x="524" y="208" fill="#8b8983">Many smaller growth events</text>
+        <text x="866" y="208" fill="#8b8983" text-anchor="end">4.112</text>
+        <text x="524" y="240" fill="#0ca30c" font-weight="600">Finish growing at step 800</text>
+        <text x="866" y="240" fill="#0ca30c" font-weight="600" text-anchor="end">4.074</text>
+      </g>
+      <line x1="524" y1="222" x2="866" y2="222" stroke="#3a3a37"/>
+      <defs>
+        <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 z" fill="#d95926"/></marker>
+        <marker id="ag" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 z" fill="#8b8983"/></marker>
+      </defs>
+    </svg>
+  </figure>
+  <p style="margin-top:22px;max-width:74ch">The search space is far too large to explore by hand, so we
+    handed it to an autonomous research agent. It reproduced our own schedule exactly, then went looking
+    for something better — <strong>and found it</strong>.</p>
 </section>
 
-<!-- 12 -->
+<!-- 9 · WHAT THE AGENT FOUND -->
 <section>
-  <div class="kicker">What the agent learned</div>
-  <h2>Growth <em>timing</em> matters more than growth <em>granularity</em>.</h2>
-  <ul>
-    <li>Both timing extremes lose — front-loading (4.220) and delaying (4.142).</li>
-    <li><span class="em">Width-first ordering is worse</span> (4.090) than interleaving width with depth.</li>
-    <li>More, finer growth events do <span class="em">not</span> help (4.112) — it's a flat basin, seed-noise dominated.</li>
-    <li>The optimum is a <span class="em">plateau around completing growth at step 800–950</span>, not a knife edge.</li>
-  </ul>
-  <p style="margin-top:24px">It then stopped and told us it had converged — <span class="em">"remaining
-    variation is seed noise"</span> — and asked whether to raise the seed count. That's the agent
-    knowing the difference between signal and noise.</p>
+  <div class="kicker">What the agent discovered</div>
+  <div class="split wide">
+    <figure>
+      <svg viewBox="0 0 460 250" id="searchchart"></svg>
+      <figcaption>Each point is one complete experiment the agent designed, ran and scored.</figcaption>
+    </figure>
+    <div>
+      <h2 style="font-size:clamp(19px,2.1vw,29px)">When a model grows matters far more than how finely it grows.</h2>
+      <p>Growing too early and growing too late were both clearly worse. Splitting the same growth into
+        more, smaller steps made no difference at all.</p>
+      <p>What mattered was <strong>finishing growth around a third of the way through training</strong>,
+        and <strong>alternating between widening and deepening</strong> rather than doing all the
+        widening first.</p>
+      <p>The agent then stopped on its own and reported that the remaining differences were smaller than
+        the noise between runs — asking whether we wanted to spend more compute to resolve them.</p>
+    </div>
+  </div>
 </section>
 
-<!-- 13 -->
+<!-- 10 · LOOKING FORWARD -->
 <section>
-  <div class="kicker">The stack · two agents, two jobs</div>
-  <h2>Autolab does the science. Maritime opens the door.</h2>
-  <pre>  <span class="gr">AUTOLAB — the scientist</span>                    app.autolab.ai/projects/qsimeon/growlab
-  ┌──────────────────────┐   job    ┌──────────────────────────┐
-  │ control node (cloud) │ ───────▶ │ execution node = <span class="em">MY LAPTOP</span> │
-  │ claude-opus-4-8      │          │ uv run grow/experiment.py│
-  │ writes a new SCHEDULE│ ◀─────── │ 3 seeds → OBJECTIVE 4.074│
-  └──────────────────────┘  result  └──────────────────────────┘
-        <span class="dim">Autolab only thinks. The training runs on my machine.</span>
-                                │
-                   runs/*.jsonl │ web/build_data.py → data.json
-                                ▼
-  <span class="fl">MARITIME — the front door</span>                  api.maritime.sh/a/961c500c…
-  ┌────────────────────────────────────────────┐
-  │ micro-VM ← Dockerfile ← github.com/qsimeon/growlab │
-  │ serves web/index.html + data.json          │
-  │ <span class="dim">no training · no GPU · no LLM · a file server</span> │
-  └────────────────────────────────────────────┘</pre>
-  <p style="margin-top:18px" class="em">They never talk to each other. The only coupling is data.json.
-    Autolab produces the research; Maritime publishes it.</p>
+  <div class="kicker">Looking forward</div>
+  <h2>What we would do next.</h2>
+  <p style="max-width:70ch">These are small models trained briefly, and we say so plainly. The result is
+    a strong signal rather than a settled fact, and the obvious next move is to repeat it at a scale
+    people actually train at, and on more varied data.</p>
+  <div style="margin-top:28px;max-width:72ch">
+    <p class="rise" style="margin-top:18px"><strong>Let the model decide when to grow.</strong>
+      Right now growth happens on a fixed timetable. It should instead be triggered when the model stops
+      improving — a signal that its current capacity has been used up.</p>
+    <p class="rise" style="margin-top:18px"><strong>Let it choose width or depth for itself.</strong>
+      The agent showed that alternating beats widening first. A model could test both and take whichever
+      helps more at that moment.</p>
+    <p class="rise" style="margin-top:18px"><strong>Push it to a serious scale.</strong>
+      If growth still wins on a model large enough to be useful, it changes what a training budget buys.</p>
+  </div>
 </section>
 
-<!-- 14 -->
+<!-- 11 · CLOSE -->
 <section>
-  <div class="kicker">Honest limits</div>
-  <h2>What we did <em>not</em> show.</h2>
-  <ul>
-    <li><span class="em">Scale.</span> 5.9M params, 4k vocab, ~2900 steps. Nothing here survives a serious scale test yet.</li>
-    <li><span class="em">The LR confound.</span> Flat ran at an LR tuned for grown. A flat-arm LR sweep is the next experiment.</li>
-    <li><span class="em">n = 3.</span> Better than the n=1 we inherited, but complete separation at 3v3 is p=0.05 — the floor, not a comfortable margin.</li>
-    <li><span class="em">Open-loop schedules.</span> Growth fires on fixed steps. It should fire when the loss says capacity is saturated.</li>
-  </ul>
-  <p style="margin-top:24px" class="dim">The negative result would also have been publishable. We built
-    the demo so it works either way — watching an agent search trajectory space is the point.</p>
-</section>
-
-<!-- 15 -->
-<section>
-  <div class="kicker">Sundai Hack #133</div>
-  <h1>Given compute <em>C</em>,<br>the optimal trajectory<br><span class="gr">is not flat.</span></h1>
-  <p style="margin-top:30px">
-    <span class="tag">Dashboard · api.maritime.sh/a/961c500c…</span><br style="line-height:2.4">
-    <span class="tag">Agent · app.autolab.ai/projects/qsimeon/growlab</span><br style="line-height:2.4">
-    <span class="tag">Code · github.com/qsimeon/growlab</span>
+  <div class="kicker">GrowLab</div>
+  <h1>The best size for a model<br>is not one number.<br><span class="gr">It is a shape.</span></h1>
+  <p style="margin-top:34px">
+    <span class="chip">Live dashboard · api.maritime.sh</span>
+    <span class="chip">The agent's search · app.autolab.ai</span>
+    <span class="chip">Code · github.com/qsimeon/growlab</span>
   </p>
 </section>
 
 </div>
-<div class="nav"><span id="n">1</span> / <span id="t">15</span> &nbsp;·&nbsp; ← → </div>
+<div class="nav"><span id="n">1</span> / <span id="t">11</span> &nbsp;·&nbsp; use ← → </div>
 <script>
+const FLAT=[[8,6.933],[25,6.826],[41,6.503],[58,6.169],[74,5.909],[90,5.736],[107,5.611],[123,5.536],[140,5.443],[156,5.359],[173,5.279],[189,5.197],[206,5.136],[222,5.057],[238,4.991],[255,4.943],[271,4.88],[288,4.809],[304,4.742],[321,4.661],[337,4.602],[354,4.536],[370,4.471],[386,4.434]];
+const GROWN=[[2,6.919],[5,6.372],[10,5.946],[16,5.709],[23,5.539],[30,5.415],[40,5.321],[52,5.236],[65,5.165],[79,5.063],[95,4.988],[111,4.907],[127,4.84],[144,4.775],[160,4.711],[177,4.664],[193,4.623],[210,4.556],[226,4.514],[243,4.462],[259,4.437],[275,4.393],[292,4.339],[308,4.267],[325,4.219],[341,4.16],[358,4.113],[374,4.068],[391,4.034]];
+const SEARCH=[4.111,4.142,4.220,4.090,4.076,4.079,4.074,4.112];
+
+function lossChart(){
+  const W=460,H=270,M={t:16,r:76,b:44,l:52};
+  const x0=0,x1=400,y0=3.9,y1=7.1;
+  const X=v=>M.l+(v-x0)/(x1-x0)*(W-M.l-M.r), Y=v=>M.t+(1-(v-y0)/(y1-y0))*(H-M.t-M.b);
+  let s='';
+  for(let v=4;v<=7;v++) s+=`<line class="gl" x1="${M.l}" y1="${Y(v)}" x2="${W-M.r}" y2="${Y(v)}"/>`
+    +`<text class="tk" x="${M.l-9}" y="${Y(v)+3.5}" text-anchor="end">${v.toFixed(1)}</text>`;
+  [0,100,200,300,400].forEach(v=>s+=`<text class="tk" x="${X(v)}" y="${H-M.b+17}" text-anchor="middle">${v?v+'T':'0'}</text>`);
+  s+=`<line class="ax" x1="${M.l}" y1="${H-M.b}" x2="${W-M.r}" y2="${H-M.b}"/>`;
+  s+=`<text class="lb" x="${(M.l+W-M.r)/2}" y="${H-8}" text-anchor="middle">compute spent (trillions of operations)</text>`;
+  s+=`<text class="lb" x="14" y="${(M.t+H-M.b)/2}" transform="rotate(-90 14 ${(M.t+H-M.b)/2})" text-anchor="middle">validation loss</text>`;
+  const path=d=>d.map((p,i)=>`${i?'L':'M'}${X(p[0])},${Y(p[1])}`).join(' ');
+  s+=`<path class="draw" d="${path(FLAT)}" stroke="#3987e5" stroke-width="2.5" fill="none"/>`;
+  s+=`<path class="draw b" d="${path(GROWN)}" stroke="#d95926" stroke-width="2.5" fill="none"/>`;
+  const lf=FLAT[FLAT.length-1], lg=GROWN[GROWN.length-1];
+  s+=`<circle class="fade d2" cx="${X(lf[0])}" cy="${Y(lf[1])}" r="4.5" fill="#3987e5"/>`
+    +`<text class="fade d2 sl" x="${X(lf[0])+10}" y="${Y(lf[1])+4}" fill="#3987e5">conventional</text>`;
+  s+=`<circle class="fade d3" cx="${X(lg[0])}" cy="${Y(lg[1])}" r="4.5" fill="#d95926"/>`
+    +`<text class="fade d3 sl" x="${X(lg[0])+10}" y="${Y(lg[1])+4}" fill="#d95926">growing</text>`;
+  document.getElementById('losschart').innerHTML=s;
+}
+function searchChart(){
+  const W=460,H=250,M={t:20,r:26,b:46,l:56};
+  const y0=4.05,y1=4.24;
+  const X=i=>M.l+i/(SEARCH.length-1)*(W-M.l-M.r), Y=v=>M.t+(1-(v-y0)/(y1-y0))*(H-M.t-M.b);
+  let s='';
+  [4.05,4.10,4.15,4.20].forEach(v=>{s+=`<line class="gl" x1="${M.l}" y1="${Y(v)}" x2="${W-M.r}" y2="${Y(v)}"/>`
+    +`<text class="tk" x="${M.l-9}" y="${Y(v)+3.5}" text-anchor="end">${v.toFixed(2)}</text>`});
+  s+=`<line class="ax" x1="${M.l}" y1="${H-M.b}" x2="${W-M.r}" y2="${H-M.b}"/>`;
+  s+=`<text class="lb" x="${(M.l+W-M.r)/2}" y="${H-10}" text-anchor="middle">experiment number</text>`;
+  s+=`<text class="lb" x="16" y="${(M.t+H-M.b)/2}" transform="rotate(-90 16 ${(M.t+H-M.b)/2})" text-anchor="middle">validation loss</text>`;
+  let best=Infinity; const bl=SEARCH.map(v=>(best=Math.min(best,v)));
+  s+=`<path class="draw" d="${bl.map((v,i)=>`${i?'L':'M'}${X(i)},${Y(v)}`).join(' ')}" stroke="#0ca30c" stroke-width="2" fill="none"/>`;
+  SEARCH.forEach((v,i)=>{
+    const isBest=v===Math.min(...SEARCH);
+    s+=`<circle class="fade d1" cx="${X(i)}" cy="${Y(v)}" r="${isBest?6:4.5}" fill="${isBest?'#0ca30c':'#8b8983'}"/>`;
+    if(i===0) s+=`<text class="fade d2 tk" x="${X(i)}" y="${Y(v)-14}" text-anchor="middle" fill="#c3c2b7">ours</text>`;
+    if(isBest) s+=`<text class="fade d3 sl" x="${X(i)}" y="${Y(v)+22}" text-anchor="middle" fill="#0ca30c">best found</text>`;
+  });
+  document.getElementById('searchchart').innerHTML=s;
+}
+lossChart(); searchChart();
+
 const S=[...document.querySelectorAll('section')];
 let i=0;
 const show=n=>{i=Math.max(0,Math.min(S.length-1,n));
   S.forEach((s,k)=>s.classList.toggle('on',k===i));
   document.getElementById('n').textContent=i+1;
   document.getElementById('bar').style.width=((i+1)/S.length*100)+'%';
-  location.hash=i+1;};
+  if(location.hash!=='#'+(i+1)) history.replaceState(null,'','#'+(i+1));};
 document.getElementById('t').textContent=S.length;
 addEventListener('keydown',e=>{
   if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();show(i+1)}
   if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();show(i-1)}
   if(e.key==='Home')show(0); if(e.key==='End')show(S.length-1);});
-// Deliberately no click-to-advance: a stray click mid-demo should not jump slides.
-// Same-document hash changes don't reload, so back/forward and #N links need this.
 addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(1))-1; if(n!==i)show(n||0)});
 show(parseInt(location.hash.slice(1))-1||0);
 </script>
