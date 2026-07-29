@@ -16,8 +16,9 @@ Constraints that make the number meaningful -- do not remove them:
   * The objective is the mean over >=3 seeds. Single-seed results at this scale
     are noise: seed sigma is ~0.01-0.05 and the effects under test are smaller.
 
-Reference points measured by grow/control.py at this exact budget are in
-runs/control_summary.json. Beat the `flat` arm's mean.
+Reference points measured at this exact budget are committed in
+runs/control_summary.json (the only tracked file under runs/). Beat the `flat`
+arm's mean; regenerate with `uv run python grow/control.py --flop-budget 4e14`.
 """
 
 import statistics

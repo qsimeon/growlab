@@ -4,7 +4,10 @@ __pycache__/
 .env
 .DS_Store
 data/
-runs/
+# Run artefacts are local, except the control summary: grow/experiment.py points
+# the agent at it for reference values, so it has to survive a fresh clone.
+runs/*
+!runs/control_summary.json
 
 .autolab/
 .playwright-mcp/

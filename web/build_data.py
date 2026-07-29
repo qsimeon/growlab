@@ -6,6 +6,7 @@ to null rather than failing, so the dashboard renders whatever exists yet.
 """
 
 import json
+import math
 import os
 import re
 import statistics
@@ -62,6 +63,7 @@ def arm_series(arm):
     }
 
 
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 EXP_RE = re.compile(
     r"^\s*([0-9a-f]{8})\s+(\w+)\s+(—|[0-9a-f]{8})\s+(?:objective\s+([\d.]+))?\s*(.*?)\s{2,}"
     r"(\d{4}-\d{2}-\d{2}T[\d:]+)\s*$"
@@ -80,7 +82,9 @@ def autolab_state():
                 cwd=ROOT,
                 env={**os.environ, "COLUMNS": "220"},
             )
-            return r.stdout if r.returncode == 0 else None
+            # The CLI colours its table whenever FORCE_COLOR is inherited (agent
+            # shells set it), and the escapes make every row miss EXP_RE.
+            return ANSI_RE.sub("", r.stdout) if r.returncode == 0 else None
         except (OSError, subprocess.SubprocessError):
             return None
 
@@ -121,7 +125,6 @@ def add_stats(control, series):
     a, b = series["flat"], series["grown"]
     if not (a["mean"] and b["mean"] and a["n_seeds"] > 1 and b["n_seeds"] > 1):
         return control
-    import math
 
     sea = a["stdev"] / math.sqrt(a["n_seeds"])
     seb = b["stdev"] / math.sqrt(b["n_seeds"])

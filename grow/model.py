@@ -2,7 +2,7 @@
 """A GPT whose architecture can change mid-training, plus honest FLOP accounting.
 
 Ported from reverse_distillation/autoresearch_grow/train.py. Two deliberate
-changes from the inherited version, both documented in NOTES.md:
+changes from the inherited version, both argued out in context/provenance.md:
 
 1. grow_width no longer zeros new dimensions. The inherited operator zeroed the
    whole new model and copied old weights into the top-left, leaving every new
@@ -17,7 +17,6 @@ changes from the inherited version, both documented in NOTES.md:
 """
 
 import copy
-import math
 
 import torch
 import torch.nn as nn
@@ -115,24 +114,36 @@ def flops_per_token(model, seq_len):
     return 6 * count_params(model) + 12 * n_layers * seq_len * d
 
 
-def _grown(old, shape, std=INIT_STD, fill="scaled"):
+def _grown(old, shape, fill="scaled"):
     """Write `old` into the top-left of a fresh tensor of the new shape."""
     if fill == "zero":
         t = torch.zeros(shape, device=old.device, dtype=old.dtype)
     else:
-        t = torch.randn(shape, device=old.device, dtype=old.dtype) * std
+        t = torch.randn(shape, device=old.device, dtype=old.dtype) * INIT_STD
     t[tuple(slice(0, s) for s in old.shape)] = old
     return t
 
 
 def grow_width(model, new_hidden_dim, device, new_init="scaled"):
-    """Widen every layer. head_dim is held constant, so heads are added."""
+    """Widen every layer. head_dim is held constant, so heads are added.
+
+    Bad targets raise. This is the surface an autonomous agent edits, and a
+    silent round-down or no-op means it thinks it ran the schedule it wrote.
+    """
     old_dim = model.hidden_dim
     head_dim = model.head_dim
-    new_heads = new_hidden_dim // head_dim
-    new_hidden_dim = new_heads * head_dim
+    if new_hidden_dim % head_dim:
+        raise ValueError(
+            f"width target {new_hidden_dim} is not a multiple of head_dim {head_dim} "
+            f"(nearest valid: {new_hidden_dim // head_dim * head_dim} or "
+            f"{(new_hidden_dim // head_dim + 1) * head_dim})"
+        )
     if new_hidden_dim <= old_dim:
-        return model
+        raise ValueError(
+            f"width target {new_hidden_dim} does not exceed current hidden dim {old_dim}; "
+            "growth is monotonic, so this step would do nothing"
+        )
+    new_heads = new_hidden_dim // head_dim
 
     new = GrowableGPT(
         model.vocab_size, new_hidden_dim, len(model.blocks), new_heads, head_dim, model.max_seq_len
@@ -167,7 +178,7 @@ def grow_width(model, new_hidden_dim, device, new_init="scaled"):
     return new
 
 
-def grow_depth(model, device, new_init="scaled"):
+def grow_depth(model, device):
     """Append a block. Output projections zero-init so it starts as identity.
 
     Zeroing the *output* side is safe: the residual path still delivers gradient
@@ -185,5 +196,5 @@ def apply_growth(model, action, device, new_init="scaled"):
     if action["action"] == "width":
         return grow_width(model, action["target_hidden"], device, new_init)
     if action["action"] == "depth":
-        return grow_depth(model, device, new_init)
+        return grow_depth(model, device)  # no new_init: the new block is zero-output by design
     raise ValueError(f"unknown growth action: {action}")

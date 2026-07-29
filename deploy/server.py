@@ -14,7 +14,9 @@ from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-WEB = Path(__file__).resolve().parent / "web"
+# Repo-relative, and the container mirrors the repo layout (/app/deploy, /app/web),
+# so `python deploy/server.py` serves the same tree locally as in the image.
+WEB = Path(__file__).resolve().parent.parent / "web"
 TOKEN = os.environ.get("INGEST_TOKEN", "")
 PORT = int(os.environ.get("PORT", "8080"))
 last_push = {"at": None}

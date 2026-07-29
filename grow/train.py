@@ -17,7 +17,6 @@ Prints `OBJECTIVE <val_loss>` on the last line for the harness to parse.
 
 import argparse
 import json
-import math
 import time
 from pathlib import Path
 
@@ -38,20 +37,27 @@ def get_device():
 
 
 def parse_schedule(spec):
-    """'80:width:192,160:depth' -> [(80, {...}), (160, {...})]"""
-    if not spec:
-        return []
-    out = []
+    """'80:width:192,160:depth' -> {80: [{...}], 160: [{...}]}
+
+    Keyed by step, list-valued: several actions may land on the same step and
+    then apply in written order ("200:width:192,200:depth" widens, then deepens).
+    This string is the agent's search space, so nothing it writes may be dropped.
+    """
+    sched = {}
     for item in spec.split(","):
-        parts = item.strip().split(":")
+        item = item.strip()
+        if not item:
+            continue
+        parts = item.split(":")
         step, action = int(parts[0]), parts[1]
         if action == "width":
-            out.append((step, {"action": "width", "target_hidden": int(parts[2])}))
+            event = {"action": "width", "target_hidden": int(parts[2])}
         elif action == "depth":
-            out.append((step, {"action": "depth"}))
+            event = {"action": "depth"}
         else:
             raise ValueError(f"unknown action {action!r} in {item!r}")
-    return sorted(out)
+        sched.setdefault(step, []).append(event)
+    return sched
 
 
 def wsd_lr(step, total, warmup, decay_fraction):
@@ -88,12 +94,12 @@ def estimate_total_steps(cfg, device):
     model = GrowableGPT(
         VOCAB_SIZE, cfg.start_dim, cfg.start_layers, cfg.start_dim // cfg.head_dim, cfg.head_dim
     ).to(device)
-    sched = dict(parse_schedule(cfg.schedule))
+    sched = parse_schedule(cfg.schedule)
     tokens = cfg.batch_size * cfg.seq_len
     spent, step = 0, 0
     while spent < cfg.flop_budget and step < 100_000:
-        if step in sched:
-            model = apply_growth(model, sched[step], device, cfg.new_init)
+        for action in sched.get(step, ()):
+            model = apply_growth(model, action, device, cfg.new_init)
         spent += flops_per_token(model, cfg.seq_len) * tokens
         step += 1
     del model
@@ -102,12 +108,13 @@ def estimate_total_steps(cfg, device):
 
 def train(cfg):
     device = get_device()
-    torch.manual_seed(cfg.seed)
     prepare(cfg.seq_len)
 
     total_steps = estimate_total_steps(cfg, device)
     print(f"[{cfg.name}] budget {cfg.flop_budget:.3e} FLOPs -> ~{total_steps} steps on {device}")
 
+    # Seeded here, after the dry run: estimate_total_steps builds throwaway
+    # models and would otherwise consume the RNG the real model draws from.
     torch.manual_seed(cfg.seed)
     model = GrowableGPT(
         VOCAB_SIZE, cfg.start_dim, cfg.start_layers, cfg.start_dim // cfg.head_dim, cfg.head_dim
@@ -116,7 +123,7 @@ def train(cfg):
     train_loader = TokenLoader("train", cfg.batch_size, cfg.seq_len, seed=1234)
     val_loader = TokenLoader("val", cfg.batch_size, cfg.seq_len, seed=0)
 
-    sched = dict(parse_schedule(cfg.schedule))
+    sched = parse_schedule(cfg.schedule)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
     RUNS.mkdir(exist_ok=True)
@@ -130,11 +137,12 @@ def train(cfg):
 
     while spent < cfg.flop_budget:
         if step in sched:
-            model = apply_growth(model, sched[step], device, cfg.new_init)
+            for action in sched[step]:
+                model = apply_growth(model, action, device, cfg.new_init)
+                growth_events.append([step, count_params(model), model.arch()])
             # Optimizer state is stale after a shape change; rebuild it.
             opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
             last_growth_step = step
-            growth_events.append([step, count_params(model), model.arch()])
             print(f"  step {step}: grew -> {model.arch()} ({count_params(model):,} params)")
 
         # Base WSD, plus a short re-warmup after each growth event.
@@ -153,9 +161,11 @@ def train(cfg):
         opt.step()
 
         spent += flops_per_token(model, cfg.seq_len) * tokens_per_step
-        step += 1
 
-        if step % cfg.log_every == 0 or step == 1:
+        # Logged before the counter advances, so a record labelled N really is
+        # step N: post-growth arch and the re-warmup LR dip land on the step
+        # that caused them, instead of one step late and off the sampling grid.
+        if step % cfg.log_every == 0:
             rec = {
                 "step": step,
                 "params": count_params(model),
@@ -169,6 +179,8 @@ def train(cfg):
                 val_history.append([step, rec["val_loss"]])
             jsonl.write(json.dumps(rec) + "\n")
             jsonl.flush()
+
+        step += 1
 
     final_val = evaluate(model, val_loader, device, n_batches=50)
     result = {

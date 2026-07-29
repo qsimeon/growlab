@@ -12,10 +12,13 @@ import argparse
 from pathlib import Path
 
 import numpy as np
+import torch
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 VOCAB_SIZE = 4096
-# Enough for the largest control arm (2000 steps x 8 x 256 tokens) with no repeats.
+# ~25M tokens, ~2x what the longest arm consumes (~2900 steps x 16 x 256 = ~12M).
+# Batches are sampled with replacement, so this bounds re-use rather than
+# eliminating it -- identical across arms, so it cannot favour one trajectory.
 N_TRAIN_DOCS = 300_000
 
 
@@ -83,8 +86,6 @@ class TokenLoader:
         self.rng = np.random.default_rng(seed)
 
     def batch(self):
-        import torch
-
         idx = self.rng.integers(0, self.n_seqs, size=self.batch_size)
         starts = idx * self.seq_len
         x = np.stack([self.tokens[s : s + self.seq_len] for s in starts]).astype(np.int64)
@@ -92,8 +93,6 @@ class TokenLoader:
 
     def eval_batches(self, n: int):
         """Fixed, non-random slice — identical across arms and seeds."""
-        import torch
-
         for i in range(n):
             s = i * self.batch_size
             if s + self.batch_size > self.n_seqs:
