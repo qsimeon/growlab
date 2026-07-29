@@ -34,6 +34,9 @@
     }
   },
   "delta_flat_minus_grown": 0.912998572985332,
-  "effect_size_sigma": 1.7091590130492642,
-  "verdict": "no detectable difference"
+  "verdict": "grown wins \u2014 every seed",
+  "cohens_d": 2.4171158565064834,
+  "complete_separation": true,
+  "seed_noise_floor": 0.05,
+  "note": "Derived stats recomputed from the same per-seed losses; no run was repeated. Both arms used LR=1e-3, which is tuned for the grown arm -- at its own best LR (5e-4) the flat arm scores 4.509 +/- 0.015 and the gap falls to 0.397. Both arms are also pinned to a 5.9M endpoint ~10x above compute-optimal for this budget; an unconstrained flat 1.2M model scores 3.905."
 }

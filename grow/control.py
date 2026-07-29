@@ -22,6 +22,9 @@ RUNS = Path(__file__).resolve().parent.parent / "runs"
 # Same endpoint for both arms: 6L 8H 256D. Arm B reaches it by step 1000.
 FINAL = {"start_dim": 256, "start_layers": 6}
 START = {"start_dim": 128, "start_layers": 3}
+# Re-running an identical config on MPS varies by this much from kernel
+# nondeterminism alone. Differences below it are not results.
+SEED_NOISE = 0.05
 SCHEDULE = "200:width:192,400:depth,600:width:256,800:depth,1000:depth"
 
 
@@ -64,13 +67,20 @@ def main():
 
     a, b = summary["arms"]["flat"], summary["arms"]["grown"]
     delta = a["mean"] - b["mean"]
-    pooled = max((a["stdev"] ** 2 + b["stdev"] ** 2) ** 0.5, 1e-9)
+    # Pooled SD for equal n. The earlier sqrt(sa^2+sb^2) was the SD of the
+    # difference, mislabelled -- it disagreed with web/build_data.py by exactly
+    # sqrt(2), so the repo shipped two effect sizes for one dataset.
+    pooled = max(((a["stdev"] ** 2 + b["stdev"] ** 2) / 2) ** 0.5, 1e-9)
     summary["delta_flat_minus_grown"] = delta
-    summary["effect_size_sigma"] = delta / pooled
+    summary["cohens_d"] = delta / pooled
+    # At n=3 a rank statement is the strongest honest claim: complete separation
+    # is Mann-Whitney U=0, one-tailed p=0.05, the minimum attainable at 3v3.
+    # Anything finer than SEED_NOISE is kernel nondeterminism, not signal.
+    summary["complete_separation"] = min(a["losses"]) > max(b["losses"])
     summary["verdict"] = (
-        "grown wins" if delta > 2 * pooled
-        else "flat wins" if delta < -2 * pooled
-        else "no detectable difference"
+        "grown wins — every seed" if summary["complete_separation"]
+        else "flat wins — every seed" if max(a["losses"]) < min(b["losses"])
+        else f"overlapping (delta {delta:+.3f}, seed noise ~{SEED_NOISE})"
     )
 
     (RUNS / "control_summary.json").write_text(json.dumps(summary, indent=2))
