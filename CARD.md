@@ -25,8 +25,9 @@ the model is allowed to grow while it learns.
   After the first one, no human chose what to try. It reproduced our
   hand-written schedule exactly, then beat it, then stopped and told us the
   remaining differences were below the noise floor.
-- **Maritime** made it public. An always-on machine serves the live results
-  page and the slide deck, so the demo exists whether or not our laptop is open.
+- **Maritime** made it public during the hackathon. An always-on machine served
+  the live results page and the slide deck, so the demo existed whether or not
+  our laptop was open. Both now live on GitHub Pages at qsimeon.github.io/growlab.
 
 Two agents, two jobs: one does the research, the other publishes it.
 
