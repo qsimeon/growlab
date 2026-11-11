@@ -74,8 +74,8 @@ people actually train at.
 
 ## Links
 
-- **Live dashboard** — https://api.maritime.sh/a/961c500c-7530-4c1a-b8cd-d276b7bec384/
-- **Slides** — https://api.maritime.sh/a/961c500c-7530-4c1a-b8cd-d276b7bec384/slides.html
+- **Live dashboard** — https://qsimeon.github.io/growlab/
+- **Slides** — https://qsimeon.github.io/growlab/slides.html
 - **The agent's search** — https://app.autolab.ai/projects/qsimeon/growlab
 - **Code** — https://github.com/qsimeon/growlab
 

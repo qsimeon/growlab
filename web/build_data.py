@@ -16,7 +16,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RUNS, OUT = ROOT / "runs", Path(__file__).resolve().parent / "data.json"
-ARMS = {"flat": "Flat N(t)", "grown": "Grown N(t)"}
+# Each arm runs at its own best peak LR. The first headline ran flat at the grown
+# arm's 1e-3, about twice its stable limit, and overstated the gap (docs/audit.md).
+ARMS = {
+    "flat": ("vflat_lr5e4", "Flat N(t), LR 5e-4"),
+    "grown": ("grown", "Grown N(t), LR 1e-3"),
+}
 
 
 def read_jsonl(path):
@@ -35,9 +40,10 @@ def read_jsonl(path):
 
 def arm_series(arm):
     """Trajectory from seed 0 (representative) + final losses across all seeds."""
-    curve = read_jsonl(RUNS / f"{arm}_s0.jsonl")
+    prefix, label = ARMS[arm]
+    curve = read_jsonl(RUNS / f"{prefix}_s0.jsonl")
     finals, steps = [], []
-    for p in sorted(RUNS.glob(f"{arm}_s*.json")):
+    for p in sorted(RUNS.glob(f"{prefix}_s*.json")):
         try:
             r = json.loads(p.read_text())
         except json.JSONDecodeError:
@@ -45,7 +51,7 @@ def arm_series(arm):
         finals.append(r["final_val_loss"])
         steps.append(r["steps_completed"])
     return {
-        "label": ARMS[arm],
+        "label": label,
         "loss": [
             {"flops": r["cum_flops"], "step": r["step"], "value": r["val_loss"]}
             for r in curve
@@ -70,7 +76,7 @@ EXP_RE = re.compile(
 )
 
 
-def autolab_state():
+def autolab_state(previous=None):
     def run(*args):
         try:
             # Wide terminal: the table wraps its columns to COLUMNS and becomes unparseable.
@@ -103,6 +109,9 @@ def autolab_state():
                     "created": created,
                 }
             )
+    if not experiments and previous and previous.get("experiments"):
+        # The AutoLab project no longer lists its runs; keep the last snapshot.
+        return {**previous, "live": False}
     scored = [e["metric"] for e in experiments if e["metric"] is not None]
     status = run("status") or ""
     return {
@@ -130,10 +139,20 @@ def add_stats(control, series):
     seb = b["stdev"] / math.sqrt(b["n_seeds"])
     pooled = math.sqrt((a["stdev"] ** 2 + b["stdev"] ** 2) / 2)
     delta = a["mean"] - b["mean"]
+    va, vb = sea**2, seb**2
+    if max(b["final_losses"]) < min(a["final_losses"]):
+        verdict = "grown wins"
+    elif max(a["final_losses"]) < min(b["final_losses"]):
+        verdict = "flat wins"
+    else:
+        verdict = "no clear winner"
     control = dict(control or {})
+    control["verdict"] = verdict
     control["stats"] = {
         "delta": delta,
-        "welch_t": delta / math.sqrt(sea**2 + seb**2),
+        "welch_t": delta / math.sqrt(va + vb),
+        "welch_df": (va + vb) ** 2
+        / (va**2 / (a["n_seeds"] - 1) + vb**2 / (b["n_seeds"] - 1)),
         "cohens_d": delta / pooled,
         "variance_ratio": (a["stdev"] / b["stdev"]) ** 2 if b["stdev"] else None,
         "sd_flat": a["stdev"],
@@ -144,13 +163,16 @@ def add_stats(control, series):
 
 def main():
     summary_path = RUNS / "control_summary.json"
-    control = json.loads(summary_path.read_text()) if summary_path.exists() else None
+    summary = json.loads(summary_path.read_text()) if summary_path.exists() else None
+    # Keep only the design facts: the summary's gap and verdict are the shared-LR run.
+    control = {k: summary[k] for k in ("flop_budget", "seeds")} if summary else None
+    previous = json.loads(OUT.read_text()).get("autolab") if OUT.exists() else None
     series = {arm: arm_series(arm) for arm in ARMS}
     data = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "control": add_stats(control, series),
         "series": series,
-        "autolab": autolab_state(),
+        "autolab": autolab_state(previous),
     }
     OUT.write_text(json.dumps(data, indent=1))
     n = {a: data["series"][a]["n_seeds"] for a in ARMS}
